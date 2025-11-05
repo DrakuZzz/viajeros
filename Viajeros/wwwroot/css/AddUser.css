@@ -1,0 +1,296 @@
+﻿/* ===================================================================
+   BLOQUEO DE DESPLAZAMIENTO HORIZONTAL
+   =================================================================== */
+html, body {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+:root {
+    --color-bg: #C8E7FF;
+    --color-accent: #82D7FE;
+    --color-input-bg: #DCF0FF;
+    --color-danger: #FF0101;
+    --color-warning: #FFA600;
+    --color-text-dark: #3E4A59;
+    --color-text-light: #FFFFFF;
+    --color-text-placeholder: #6B8BA6;
+    --border-radius: 12px;
+}
+
+/* Contenedor principal */
+.app-container {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 450px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Título principal */
+.form-title {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    text-align: center;
+    color: var(--color-text-dark);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+
+/* Sección principal */
+.main-content {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--color-text-light);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+/* Subtítulo */
+.form-subtitle {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--color-text-dark);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-left: 10px;
+    border-left: 4px solid var(--color-accent);
+}
+
+/* Grupos de formulario */
+.form-section {
+    margin-bottom: 25px;
+}
+
+.grupo-formulario {
+    margin-bottom: 20px;
+}
+
+/* Etiquetas */
+.form-section label {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text-dark);
+    font-size: 0.9rem;
+}
+
+/* Campos de entrada */
+.custom-input {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 10px !important;
+    background: var(--color-input-bg);
+    font-size: 1rem;
+    color: var(--color-text-dark);
+    transition: all 0.3s ease;
+    outline: none;
+}
+
+    .custom-input:focus {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 1px;
+    }
+
+    .custom-input::placeholder {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--color-text-placeholder);
+    }
+
+/* Grupo de botones DENTRO de la caja */
+.credenciales-form .form-footer {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 2px solid var(--color-input-bg);
+}
+
+/* Botones */
+.btn-action {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn-agregar {
+    background: var(--color-input-bg);
+    color: var(--color-text-dark);
+}
+
+.btn-cancelar {
+    background: var(--color-danger);
+    color: var(--color-text-light);
+}
+
+    .btn-cancelar:hover {
+        opacity: 0.9;
+    }
+
+/* Responsive */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 15px;
+    }
+
+    .form-title {
+        font-size: 1.6rem;
+    }
+
+    .main-content {
+        padding: 20px;
+    }
+
+    .form-subtitle {
+        font-size: 1.1rem;
+    }
+
+    .credenciales-form .form-footer {
+        flex-direction: column;
+    }
+
+    .btn-action {
+        width: 100%;
+    }
+}
+
+@media (max-width: 480px) {
+    .app-container {
+        padding: 10px;
+    }
+
+    .form-title {
+        font-size: 1.4rem;
+        margin-bottom: 20px;
+    }
+
+    .main-content {
+        padding: 15px;
+    }
+
+    .form-subtitle {
+        font-size: 1rem;
+    }
+
+    .custom-input {
+        padding: 12px 14px;
+    }
+}
+
+/* Alertas flotantes */
+.alerta-flotante {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.5s ease, slideOutRight 0.5s ease 4.5s forwards;
+}
+
+.alerta-exito {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border-left: 5px solid #2E7D32;
+}
+
+.alerta-error {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border-left: 5px solid #c62828;
+}
+
+.alerta-contenido {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    color: white;
+    position: relative;
+}
+
+.alerta-icono {
+    font-size: 20px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.alerta-mensaje {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.alerta-cerrar {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
+}
+
+    .alerta-cerrar:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Responsive para alertas */
+@media (max-width: 768px) {
+    .alerta-flotante {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+    }
+}
+
+/* Estados de carga */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

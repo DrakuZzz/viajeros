@@ -1,0 +1,192 @@
+﻿@page "/agragaradmin"
+@inject NavigationManager Navigation
+@inject Viajeros.Services.ApiService ApiService
+@using Viajeros.Models
+
+<link rel="stylesheet" href="css/AddUser.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<!-- Alerta flotante -->
+@if (mostrarAlerta)
+{
+    <div class="alerta-flotante @(alertaEsExito ? "alerta-exito" : "alerta-error")">
+        <div class="alerta-contenido">
+            <span class="alerta-icono">@(alertaEsExito ? "✅" : "❌")</span>
+            <span class="alerta-mensaje">@mensajeAlerta</span>
+            <button class="alerta-cerrar" @onclick="CerrarAlerta">×</button>
+        </div>
+    </div>
+}
+
+<div class="app-container">
+    <main class="main-content">
+        <h2 class="form-title">Agregar Administrador</h2>
+        <p class="form-subtitle">Ingrese datos</p>
+
+        <form class="credenciales-form">
+            <div class="form-section">
+                <label for="email">Correo electrónico</label>
+                <input type="email" id="email" class="custom-input"
+                       @bind="adminRegistro.Email" placeholder="ejemplo@dominio.com" />
+
+                <label for="password">Contraseña</label>
+                <input type="password" id="password" class="custom-input"
+                       @bind="adminRegistro.Contraseña" placeholder="Mínimo 6 caracteres" />
+
+                <label for="confirmPassword">Confirmar Contraseña</label>
+                <input type="password" id="confirmPassword" class="custom-input"
+                       @bind="adminRegistro.ConfirmarContraseña" placeholder="Repite la contraseña" />
+            </div>
+
+            <!-- BOTONES DENTRO DEL FORMULARIO -->
+            <footer class="form-footer">
+                <button type="button" class="btn-action btn-agregar" @onclick="CrearAdministrador" disabled="@isLoading">
+                    @if (isLoading)
+                    {
+                        <span>Creando...</span>
+                    }
+                    else
+                    {
+                        <span>Crear Cuenta</span>
+                    }
+                </button>
+                <button type="button" class="btn-action btn-cancelar" @onclick="Cancelar" disabled="@isLoading">Cancelar</button>
+            </footer>
+        </form>
+    </main>
+</div>
+
+@code {
+    private AdminRegistroDto adminRegistro = new AdminRegistroDto();
+    private bool isLoading = false;
+
+    // Variables para la alerta flotante
+    private bool mostrarAlerta = false;
+    private bool alertaEsExito = false;
+    private string mensajeAlerta = "";
+
+    private string urlFuncional = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Probar conexión
+        var (success, workingUrl) = await ApiService.ProbarConexion();
+        if (success)
+        {
+            urlFuncional = workingUrl;
+        }
+        else
+        {
+            MostrarAlerta("❌ No se pudo conectar con el servidor", false);
+        }
+    }
+
+    private async Task CrearAdministrador()
+    {
+        // Validaciones
+        if (string.IsNullOrWhiteSpace(adminRegistro.Email))
+        {
+            MostrarAlerta("❌ El correo electrónico es requerido", false);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(adminRegistro.Contraseña))
+        {
+            MostrarAlerta("❌ La contraseña es requerida", false);
+            return;
+        }
+
+        if (adminRegistro.Contraseña.Length < 6)
+        {
+            MostrarAlerta("❌ La contraseña debe tener al menos 6 caracteres", false);
+            return;
+        }
+
+        if (adminRegistro.Contraseña != adminRegistro.ConfirmarContraseña)
+        {
+            MostrarAlerta("❌ Las contraseñas no coinciden", false);
+            return;
+        }
+
+        if (!IsValidEmail(adminRegistro.Email))
+        {
+            MostrarAlerta("❌ Formato de correo electrónico inválido", false);
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            var (success, message) = await ApiService.RegistrarAdministrador(adminRegistro, urlFuncional);
+
+            if (success)
+            {
+                MostrarAlerta("🎉 ¡Administrador creado exitosamente!", true);
+                LimpiarFormulario();
+            }
+            else
+            {
+                MostrarAlerta(message, false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"❌ Error: {ex.Message}", false);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    // 👇 MÉTODO PARA MOSTRAR ALERTA FLOTANTE
+    private async void MostrarAlerta(string mensaje, bool esExito)
+    {
+        mensajeAlerta = mensaje;
+        alertaEsExito = esExito;
+        mostrarAlerta = true;
+        StateHasChanged();
+
+        // Cerrar automáticamente después de 5 segundos si es éxito, 8 segundos si es error
+        await Task.Delay(esExito ? 5000 : 8000);
+        if (mostrarAlerta)
+        {
+            CerrarAlerta();
+        }
+    }
+
+    // 👇 MÉTODO PARA CERRAR ALERTA
+    private void CerrarAlerta()
+    {
+        mostrarAlerta = false;
+        StateHasChanged();
+    }
+
+    // 👇 MÉTODO PARA LIMPIAR FORMULARIO
+    private void LimpiarFormulario()
+    {
+        adminRegistro = new AdminRegistroDto();
+    }
+
+    // 👇 MÉTODO PARA VALIDAR EMAIL
+    private bool IsValidEmail(string email)
+    {
+        try
+        {
+            var addr = new System.Net.Mail.MailAddress(email);
+            return addr.Address == email;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/home");
+    }
+}

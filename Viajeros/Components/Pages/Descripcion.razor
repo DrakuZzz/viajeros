@@ -1,0 +1,607 @@
+﻿@page "/descripcion/{IdLugar}"
+@using Viajeros.Services
+@using Viajeros.Models
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<link rel="stylesheet" href="css/Descripcion.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<ScrollView x:Name="scrollViewPrincipal">
+    <VerticalStackLayout>
+        <div class="contenedor-descripcion">
+            <header class="encabezado-descripcion">
+                <button class="boton-favoritos @(esFavorito ? "favorito-activo" : "")" @onclick="ToggleFavorito">
+                    <i class="icono-corazon @(esFavorito ? "fas fa-heart" : "far fa-heart")"></i>
+                </button>
+            </header>
+
+            @if (cargando)
+            {
+                <div class="cargando">Cargando información del lugar...</div>
+            }
+            else if (lugar == null)
+            {
+                <div class="error">No se pudo cargar la información del lugar</div>
+            }
+            else
+            {
+                <!-- Imagen principal -->
+                <div class="imagen-principal">
+                    @if (!string.IsNullOrEmpty(lugar.Imagen))
+                    {
+                        <ImagenLugar NombreImagen="@lugar.Imagen"
+                                     AltText="@lugar.NombreLugar"
+                                     BaseUrl="@baseUrl" />
+                    }
+                    else
+                    {
+                        <div class="imagen-placeholder">
+                            <i class="fas fa-image"></i>
+                        </div>
+                    }
+                </div>
+
+                <!-- Información principal -->
+                <section class="seccion-informacion">
+                    <div class="contenedor-botones-superiores">
+                        <div class="cabecera-lugar">
+                            <h1 class="nombre-lugar">@lugar.NombreLugar</h1>
+
+                            <div class="info-derecha">
+                                <div class="calificacion-principal" @onclick="() => ScrollAComentarios()">
+                                    <span class="estrellas">@RenderEstrellas((double)lugar.CalificacionPromedio)</span>
+                                    <span class="numero-calificacion">@lugar.CalificacionPromedio.ToString("0.0")</span>
+                                </div>
+                                <p class="resumen-comentarios" @onclick="() => ScrollAComentarios()">
+                                    <i class="fas fa-comments"></i> @lugar.Comentarios.Count comentarios
+                                </p>
+                            </div>
+                        </div>
+
+                        <div class="descripcion-lugar">
+                            <p>@lugar.Descripcion</p>
+                        </div>
+
+                        <div class="contenedor-botones-derecha">
+                            <button class="boton-mapa" @onclick="AbrirMapa">
+                                <i class="fas fa-map-marker-alt"></i> Ver en maps
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Cómo llegar -->
+                <section class="seccion-como-llegar">
+                    <h2 class="titulo-seccion">Cómo llegar</h2>
+                    <div class="info-transporte">
+                        <p class="transporte-item">
+                            <i class="fas fa-map-marker-alt"></i> 
+                            Ubicación: @ObtenerUbicacionFormateada()
+                        </p>
+                        @if (lugar.Transportes.Any())
+                        {
+                            <p class="transporte-item">Transportes disponibles:</p>
+                            <div class="lista-transportes">
+                                @foreach (var transporte in lugar.Transportes)
+                                {
+                                    <span class="transporte-tag">@transporte.Transporte</span>
+                                }
+                            </div>
+                        }
+                    </div>
+                </section>
+
+                <!-- Servicios y Actividades -->
+                @if (lugar.Actividades.Any())
+                {
+                    <section class="seccion-servicios">
+                        <h2 class="titulo-seccion">Servicios y Actividades</h2>
+                        <div class="lista-servicios">
+                            @foreach (var actividad in lugar.Actividades)
+                            {
+                                <p class="servicio-item">@actividad.Actividad</p>
+                            }
+                        </div>
+                    </section>
+                }
+
+                <!-- Comentarios -->
+                <section class="seccion-comentarios" @ref="seccionComentariosRef">
+                    <div class="cabecera-comentarios">
+                        <h2 class="titulo-seccion">Comentarios</h2>
+                        @if (lugar.Comentarios.Count > 3)
+                        {
+                            <button class="boton-ver-comentarios" @onclick="ToggleTodosLosComentarios">
+                                <i class="fas @(mostrandoTodosLosComentarios ? "fa-chevron-up" : "fa-chevron-down")"></i>
+                                @(mostrandoTodosLosComentarios ? "Ver menos comentarios" : "Ver todos los comentarios (" + lugar.Comentarios.Count + ")")
+                            </button>
+                        }
+                    </div>
+
+                    <div class="lista-comentarios">
+                        @if (lugar.Comentarios.Any())
+                        {
+                            @foreach (var comentario in comentariosMostrados)
+                            {
+                                <div class="comentario-item">
+                                    <div class="info-usuario">
+                                        <!-- Imagen del usuario -->
+                                        <div class="avatar-usuario-comentario">
+                                            @{
+                                                var imagenUsuario = imagenesUsuarios.GetValueOrDefault(comentario.Id_usuario);
+                                                var tieneImagenReal = !string.IsNullOrEmpty(imagenUsuario) && imagenUsuario != "string";
+                                            }
+                                            
+                                            @if (tieneImagenReal)
+                                            {
+                                                <ImagenLugar NombreImagen="@imagenUsuario"
+                                                             AltText="@($"Foto de perfil de {comentario.NombreUsuario}")"
+                                                             BaseUrl="@baseUrl" />
+                                            }
+                                            else
+                                            {
+                                                <div class="avatar-placeholder">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                            }
+                                        </div>
+                                        <span class="nombre-usuario">
+                                            @comentario.NombreUsuario
+                                        </span>
+                                    </div>
+
+                                    <p class="texto-comentario">@comentario.comentario</p>
+
+                                    <div class="calificacion-comentario">
+                                        @{
+                                            var calificacionUsuario = lugar.Estrellas
+                                            .FirstOrDefault(e => e.Id_usuario == comentario.Id_usuario)?.Calificacion ?? 0;
+                                        }
+                                        <span class="estrellas">@RenderEstrellas((double)calificacionUsuario)</span>
+                                        <span class="numero-calificacion">@calificacionUsuario.ToString("0.0")</span>
+                                    </div>
+                                </div>
+                            }
+                        }
+                        else
+                        {
+                            <div class="sin-comentarios">
+                                <p>No hay comentarios aún. ¡Sé el primero en comentar!</p>
+                            </div>
+                        }
+                    </div>
+
+                    <!-- BOTÓN COMENTAR -->
+                    <div class="accion-comentar">
+                        <button class="boton-comentar" @onclick="MostrarInputComentar">
+                            <i class="fas fa-comment"></i> Comentar
+                        </button>
+                    </div>
+
+                    @if (mostrandoComentar)
+                    {
+                        <div class="input-comentario-container">
+                            <div class="selector-calificacion">
+                                <span class="etiqueta-calificacion">Califica este lugar:</span>
+                                <div class="contenedor-selector-estrellas">
+                                    <select class="selector-estrellas" @bind="calificacionUsuarioNuevo">
+                                        <option value="1">1</option>
+                                        <option value="2">2</option>
+                                        <option value="3">3</option>
+                                        <option value="4">4</option>
+                                        <option value="5">5</option>
+                                    </select>
+                                    <span class="estrellas-visual">@RenderEstrellasVisuales(calificacionUsuarioNuevo)</span>
+                                </div>
+                            </div>
+
+                            <textarea class="input-comentario" placeholder="Escribe tu comentario..." @bind="nuevoComentario"></textarea>
+
+                            <div class="comentario-botones">
+                                <button class="boton-comentar" @onclick="EnviarComentarioAsync" disabled="@enviandoComentario">
+                                    <i class="fas @(enviandoComentario ? "fa-spinner fa-spin" : "fa-paper-plane")"></i>
+                                    @(enviandoComentario ? "Enviando..." : "Enviar")
+                                </button>
+                                <button class="boton-cancelar" @onclick="CancelarComentar" disabled="@enviandoComentario">
+                                    <i class="fas fa-times"></i> Cancelar
+                                </button>
+                            </div>
+                        </div>
+                    }
+                </section>
+            }
+        </div>
+    </VerticalStackLayout>
+</ScrollView>
+
+@code {
+    [Parameter] public string IdLugar { get; set; }
+
+    private LugarCompletoDto lugar;
+    private bool cargando = true;
+    private string baseUrl = string.Empty;
+    private bool esFavorito = false;
+
+    private bool mostrandoComentar = false;
+    private bool mostrandoTodosLosComentarios = false;
+    private string nuevoComentario = string.Empty;
+    private int calificacionUsuarioNuevo = 1;
+    private bool enviandoComentario = false;
+
+    private int idUsuarioActual = 0;
+    private string nombreUsuarioActual = string.Empty;
+    private Dictionary<int, string> imagenesUsuarios = new Dictionary<int, string>();
+
+    // Referencias para el scroll
+    private ElementReference seccionComentariosRef;
+
+    private IEnumerable<ComentarioDto> comentariosMostrados
+    {
+        get
+        {
+            if (lugar?.Comentarios == null || !lugar.Comentarios.Any())
+                return new List<ComentarioDto>();
+
+            var comentariosOrdenados = lugar.Comentarios
+                .OrderByDescending(c => c.Id_comentario)
+                .ToList();
+
+            return mostrandoTodosLosComentarios
+                ? comentariosOrdenados
+                : comentariosOrdenados.Take(3);
+        }
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ObtenerUsuarioSesion();
+        await CargarLugar();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await CargarLugar();
+    }
+
+    private async Task ObtenerUsuarioSesion()
+    {
+        try
+        {
+            var authState = await AuthService.GetAuthStateAsync();
+
+            if (authState != null && authState.IsAuthenticated)
+            {
+                idUsuarioActual = authState.UserId;
+                nombreUsuarioActual = authState.UserName;
+                Console.WriteLine($"✅ Usuario autenticado: ID={idUsuarioActual}, Nombre={nombreUsuarioActual}");
+            }
+            else
+            {
+                idUsuarioActual = 0;
+                nombreUsuarioActual = string.Empty;
+                Console.WriteLine("👤 Usuario no autenticado, modo visitante.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Error al obtener usuario de sesión: {ex.Message}");
+            idUsuarioActual = 0;
+            nombreUsuarioActual = string.Empty;
+        }
+    }
+
+    private async Task CargarLugar()
+    {
+        if (string.IsNullOrEmpty(IdLugar) || !int.TryParse(IdLugar, out int id))
+        {
+            cargando = false;
+            return;
+        }
+
+        cargando = true;
+        StateHasChanged();
+
+        try
+        {
+            var (success, workingUrl) = await ApiService.ProbarConexion();
+            if (success)
+            {
+                baseUrl = workingUrl;
+                lugar = await ApiService.ObtenerLugarPorId(baseUrl, id);
+
+                if (lugar != null)
+                {
+                    if (idUsuarioActual > 0)
+                    {
+                        esFavorito = await VerificarSiEsFavorito(id);
+                    }
+                    
+                    await CargarImagenesUsuarios();
+                }
+            }
+            else
+            {
+                lugar = null;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar lugar: {ex.Message}");
+            lugar = null;
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CargarImagenesUsuarios()
+    {
+        if (lugar?.Comentarios == null) return;
+
+        try
+        {
+            foreach (var comentario in lugar.Comentarios)
+            {
+                if (!imagenesUsuarios.ContainsKey(comentario.Id_usuario))
+                {
+                    var usuario = await ApiService.ObtenerUsuarioPorId(baseUrl, comentario.Id_usuario);
+                    if (usuario != null && !string.IsNullOrEmpty(usuario.Imgperfil) && usuario.Imgperfil != "string")
+                    {
+                        imagenesUsuarios[comentario.Id_usuario] = usuario.Imgperfil;
+                    }
+                    else
+                    {
+                        imagenesUsuarios[comentario.Id_usuario] = null;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar imágenes de usuarios: {ex.Message}");
+        }
+    }
+
+    private async Task ScrollAComentarios()
+    {
+        try
+        {
+            await JSRuntime.InvokeVoidAsync("scrollToElement", seccionComentariosRef);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al hacer scroll: {ex.Message}");
+            await IntentarScrollAlternativo();
+        }
+    }
+
+    private async Task IntentarScrollAlternativo()
+    {
+        try
+        {
+            await Task.Delay(100);
+            await JSRuntime.InvokeVoidAsync("eval", 
+                $"document.getElementById('seccion-comentarios')?.scrollIntoView({{ behavior: 'smooth', block: 'start' }});");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error en scroll alternativo: {ex.Message}");
+        }
+    }
+
+    private async Task ToggleFavorito()
+    {
+        if (idUsuarioActual == 0)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+
+        try
+        {
+            esFavorito = await ApiService.ToggleFavorito(idUsuarioActual, lugar.Id_lugar, baseUrl);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al toggle favorito: {ex.Message}");
+        }
+    }
+
+    private async Task<bool> VerificarSiEsFavorito(int idLugar)
+    {
+        if (idUsuarioActual == 0) return false;
+
+        try
+        {
+            return await ApiService.EsFavorito(idUsuarioActual, idLugar, baseUrl);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al verificar favorito: {ex.Message}");
+            return false;
+        }
+    }
+
+    private void MostrarInputComentar()
+    {
+        if (idUsuarioActual == 0)
+        {
+            Navigation.NavigateTo("/login");
+            return;
+        }
+        mostrandoComentar = true;
+    }
+
+    private void CancelarComentar()
+    {
+        mostrandoComentar = false;
+        nuevoComentario = string.Empty;
+        calificacionUsuarioNuevo = 1;
+        enviandoComentario = false;
+    }
+
+    private void ToggleTodosLosComentarios()
+    {
+        mostrandoTodosLosComentarios = !mostrandoTodosLosComentarios;
+        StateHasChanged();
+    }
+
+    private async Task EnviarComentarioAsync()
+    {
+        Console.WriteLine("🔵 Intentando enviar comentario...");
+
+        if (string.IsNullOrWhiteSpace(nuevoComentario))
+        {
+            Console.WriteLine("❌ Comentario vacío");
+            return;
+        }
+
+        enviandoComentario = true;
+        StateHasChanged();
+
+        try
+        {
+            Console.WriteLine($"📤 Enviando: Usuario={idUsuarioActual}, Lugar={lugar.Id_lugar}");
+
+            // 1️⃣ Guardar calificación
+            var estrellaDto = await ApiService.GuardarEstrella(new EstrellaCreateDto
+            {
+                Id_usuario = idUsuarioActual,
+                Id_lugar = lugar.Id_lugar,
+                Calificacion = calificacionUsuarioNuevo
+            }, baseUrl);
+
+            if (estrellaDto != null)
+            {
+                Console.WriteLine($"⭐ Calificación guardada: {estrellaDto.Calificacion}");
+
+                // Actualizar o agregar la estrella
+                var estrellaExistente = lugar.Estrellas.FirstOrDefault(e => e.Id_usuario == idUsuarioActual);
+                if (estrellaExistente != null)
+                {
+                    estrellaExistente.Calificacion = estrellaDto.Calificacion;
+                }
+                else
+                {
+                    lugar.Estrellas.Add(new EstrellaDto
+                    {
+                        Id_estrella = estrellaDto.Id_estrella,
+                        Id_usuario = idUsuarioActual,
+                        Calificacion = estrellaDto.Calificacion
+                    });
+                }
+
+                // Recalcular promedio
+                if (lugar.Estrellas.Any())
+                    lugar.CalificacionPromedio = (decimal)lugar.Estrellas.Average(e => e.Calificacion);
+            }
+
+            // 2️⃣ Guardar comentario
+            var comentarioDto = await ApiService.GuardarComentario(new ComentarioCreateDto
+            {
+                Id_usuario = idUsuarioActual,
+                Id_lugar = lugar.Id_lugar,
+                comentario = nuevoComentario
+            }, baseUrl);
+
+            Console.WriteLine($"💬 Comentario: {(comentarioDto != null ? "OK" : "FALLÓ")}");
+
+            if (comentarioDto != null)
+            {
+                // Actualizar o agregar el comentario
+                var comentarioExistente = lugar.Comentarios.FirstOrDefault(c => c.Id_usuario == idUsuarioActual);
+                if (comentarioExistente != null)
+                {
+                    comentarioExistente.comentario = comentarioDto.comentario;
+                    comentarioExistente.Id_comentario = comentarioDto.Id_comentario;
+                }
+                else
+                {
+                    lugar.Comentarios.Add(new ComentarioDto
+                    {
+                        Id_comentario = comentarioDto.Id_comentario,
+                        Id_usuario = idUsuarioActual,
+                        NombreUsuario = nombreUsuarioActual,
+                        comentario = comentarioDto.comentario
+                    });
+                }
+
+                // Actualizar imagen del usuario actual si no existe
+                if (!imagenesUsuarios.ContainsKey(idUsuarioActual))
+                {
+                    var usuarioActual = await ApiService.ObtenerUsuarioPorId(baseUrl, idUsuarioActual);
+                    imagenesUsuarios[idUsuarioActual] = usuarioActual?.Imgperfil ?? null;
+                }
+
+                Console.WriteLine($"✅ Comentario agregado/actualizado. Total comentarios: {lugar.Comentarios.Count}");
+            }
+
+            // ✅ Reset del formulario SIEMPRE
+            nuevoComentario = string.Empty;
+            calificacionUsuarioNuevo = 1;
+            mostrandoComentar = false;
+
+            // Forzar actualización del estado
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"💥 Error: {ex.Message}");
+        }
+        finally
+        {
+            enviandoComentario = false;
+            StateHasChanged();
+        }
+    }
+
+    private string ObtenerUbicacionFormateada()
+    {
+        var partes = new List<string>();
+        
+        if (!string.IsNullOrEmpty(lugar.NombreCiudad))
+            partes.Add(lugar.NombreCiudad);
+        
+        if (!string.IsNullOrEmpty(lugar.NombreEstado))
+            partes.Add(lugar.NombreEstado);
+        
+        if (!string.IsNullOrEmpty(lugar.NombrePais))
+            partes.Add(lugar.NombrePais);
+        
+        return partes.Any() ? string.Join(", ", partes) : "Ubicación no disponible";
+    }
+
+    private RenderFragment RenderEstrellas(double calificacion) => builder =>
+    {
+        int fullStars = (int)Math.Floor(calificacion);
+        for (int i = 0; i < fullStars; i++)
+            builder.AddMarkupContent(i, "<i class='fas fa-star'></i>");
+
+        if (calificacion - fullStars >= 0.5)
+            builder.AddMarkupContent(fullStars, "<i class='fas fa-star-half-alt'></i>");
+
+        int emptyStars = 5 - (int)Math.Ceiling(calificacion);
+        for (int i = 0; i < emptyStars; i++)
+            builder.AddMarkupContent(fullStars + 1 + i, "<i class='far fa-star'></i>");
+    };
+
+    private RenderFragment RenderEstrellasVisuales(int calificacion) => builder =>
+    {
+        for (int i = 0; i < calificacion; i++)
+            builder.AddMarkupContent(i, "<i class='fas fa-star'></i>");
+        for (int i = calificacion; i < 5; i++)
+            builder.AddMarkupContent(i + calificacion, "<i class='far fa-star'></i>");
+    };
+
+    private void AbrirMapa()
+    {
+        if (!string.IsNullOrEmpty(lugar?.Ubicacion))
+            Navigation.NavigateTo(lugar.Ubicacion, true);
+    }
+}

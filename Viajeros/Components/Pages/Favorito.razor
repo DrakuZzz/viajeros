@@ -1,0 +1,189 @@
+﻿@page "/favoritos"
+@using Viajeros.Services
+@using Viajeros.Models
+@inject ApiService ApiService
+@inject AuthService AuthService
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="css/Favorito.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<div class="contenedor-favoritos">
+    <div class="seccion-favoritos">
+        <h2 class="titulo-seccion">FAVORITOS</h2>
+
+        @if (!string.IsNullOrEmpty(mensajeError))
+        {
+            <div style="color:red; text-align:center; margin-bottom:12px;">@mensajeError</div>
+        }
+
+        @if (cargando)
+        {
+            <div style="text-align:center;">
+                <i class="fas fa-spinner fa-spin"></i> Cargando...
+            </div>
+        }
+        else if (favoritos == null || !favoritos.Any())
+        {
+            <div style="text-align:center;">
+                <p>No tienes lugares favoritos.</p>
+                <button @onclick="IrAExplorar" class="boton-explorar">
+                    Explorar
+                </button>
+            </div>
+
+        }
+        else
+        {
+            <div class="lista-favoritos">
+                @foreach (var favorito in favoritos)
+                {
+                    <div class="item-favorito">
+                        <div class="contenedor-imagen">
+                            @if (!string.IsNullOrEmpty(favorito.Imagen))
+                            {
+                                <ImagenLugar NombreImagen="@favorito.Imagen"
+                                             AltText="@favorito.NombreLugar"
+                                             BaseUrl="@baseUrl" />
+                            }
+                            else
+                            {
+                                <div class="imagen-placeholder">
+                                    <i class="fas fa-image"></i>
+                                </div>
+                            }
+                        </div>
+
+                        <div class="info-lugar" @onclick="() => IrADescripcion(favorito.Id_lugar)"
+                             @onclick:preventDefault="true">
+
+                            <h3 class="nombre-lugar">@favorito.NombreLugar</h3>
+                            <div class="calificacion">
+                                <span class="estrellas">@RenderEstrellas(favorito.CalificacionPromedio)</span>
+                                <span class="numero-calificacion">@favorito.CalificacionPromedio.ToString("0.0")</span>
+                            </div>
+                            <p class="comentario">
+                                @(favorito.UltimoComentario?.comentario ?? "Sin comentarios")
+                            </p>
+                        </div>
+
+                        <button class="boton-favoritos favorito-activo"
+                                @onclick="() => QuitarFavorito(favorito.Id_lugar)"
+                                @onclick:stopPropagation="true">
+                            @if (loadingItemIds.Contains(favorito.Id_lugar))
+                            {
+                                <i class="fas fa-spinner fa-spin"></i>
+                            }
+                            else
+                            {
+                                <i class="fas fa-heart"></i>
+                            }
+                        </button>
+                    </div>
+                }
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private List<LugarConUltimoComentarioYEstrellasDto> favoritos = new();
+    private bool cargando = true;
+    private string baseUrl = string.Empty;
+    private int idUsuarioActual = 0;
+    private string mensajeError = string.Empty;
+    private HashSet<int> loadingItemIds = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarTodo();
+    }
+
+    private async Task CargarTodo()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = "";
+
+            var auth = await AuthService.GetAuthStateAsync();
+            if (!auth.IsAuthenticated)
+            {
+                Navigation.NavigateTo("/login");
+                return;
+            }
+
+            idUsuarioActual = auth.UserId;
+
+            var (success, workingUrl) = await ApiService.ProbarConexion();
+            if (!success)
+            {
+                mensajeError = "No se pudo conectar con el servidor.";
+                return;
+            }
+
+            baseUrl = workingUrl;
+            favoritos = await ApiService.ObtenerFavoritosPorUsuario(idUsuarioActual, baseUrl);
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar favoritos: {ex.Message}";
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task QuitarFavorito(int idLugar)
+    {
+        if (loadingItemIds.Contains(idLugar)) return;
+
+        loadingItemIds.Add(idLugar);
+        StateHasChanged();
+
+        try
+        {
+            bool esFavorito = await ApiService.ToggleFavorito(idUsuarioActual, idLugar, baseUrl);
+
+            if (!esFavorito)
+            {
+                var item = favoritos.FirstOrDefault(f => f.Id_lugar == idLugar);
+                if (item != null)
+                {
+                    favoritos.Remove(item);
+                    StateHasChanged();
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al quitar favorito: {ex.Message}";
+        }
+        finally
+        {
+            loadingItemIds.Remove(idLugar);
+            StateHasChanged();
+        }
+    }
+
+    private void IrADescripcion(int idLugar) =>
+        Navigation.NavigateTo($"/descripcion/{idLugar}");
+
+    private void IrAExplorar() =>
+        Navigation.NavigateTo("/");
+
+    private string ObtenerImagenLugar(LugarConUltimoComentarioYEstrellasDto lugar)
+    {
+        var imageNames = new[] { "piramide2.jpg", "playa-carmen.jpg", "chichen-itza.jpg", "tulum.jpg" };
+        var index = (lugar.Id_lugar - 1) % imageNames.Length;
+        return $"images/{imageNames[index]}";
+    }
+
+    private string RenderEstrellas(decimal calificacion)
+    {
+        int llenas = (int)Math.Round(calificacion);
+        return new string('★', llenas) + new string('☆', 5 - llenas);
+    }
+}

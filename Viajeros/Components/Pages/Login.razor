@@ -1,0 +1,129 @@
+﻿@page "/login"
+@using Viajeros.Services
+@inject AuthService AuthService
+@inject NavigationManager NavManager
+
+<link rel="stylesheet" href="css/login.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+
+<div class="login">
+    <!-- Botón de regreso al home - Solo ícono de casa -->
+    <div class="boton-regreso">
+        <button class="btn-volver-home" @onclick="VolverAlHome" title="Volver al Home">
+            <i class="fas fa-home"></i>
+        </button>
+    </div>
+
+    <div class="encabezado-login">
+        <img src="images/LOGO.PNG" alt="Logo de Viajeros" class="logo-marca" />
+        <h1 class="nombre-marca">VIAJEROS</h1>
+        <p class="eslogan-marca">Tu guía a la aventura</p>
+    </div>
+
+    <div class="formulario-login">
+        @if (!string.IsNullOrEmpty(errorMessage))
+        {
+                <div class="alert alert-danger">@errorMessage</div>
+        }
+
+        <div class="grupo">
+            <input type="email" id="correo" placeholder="Correo electronico"
+                   @bind="email" @onkeydown="HandleKeyDown" />
+        </div>
+
+        <div class="grupo">
+            <input type="password" id="password" placeholder="Contraseña"
+                   @bind="password" @onkeydown="HandleKeyDown" />
+        </div>
+
+        <button class="boton-login" @onclick="HandleLogin" disabled="@isLoading">
+            @if (isLoading)
+            {
+                    <span>Iniciando sesión...</span>
+            }
+            else
+            {
+                    <span>Iniciar Sesión</span>
+            }
+        </button>
+
+        <div class="enlaces">
+            <a href="#" class="enlace">¿Olvidaste tu contraseña?</a>
+            <br>
+            <a href="/register" class="enlace">Registrarse</a>
+        </div>
+    </div>
+</div>
+
+@code {
+    private string email = string.Empty;
+    private string password = string.Empty;
+    private string errorMessage = string.Empty;
+    private bool isLoading = false;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Si ya está autenticado, redirigir al home
+        var authState = await AuthService.GetAuthStateAsync();
+        if (authState.IsAuthenticated)
+        {
+            NavManager.NavigateTo("/");
+        }
+    }
+
+    private void VolverAlHome()
+    {
+        NavManager.NavigateTo("/");
+    }
+
+    private async Task HandleLogin()
+    {
+        if (string.IsNullOrWhiteSpace(email) || string.IsNullOrWhiteSpace(password))
+        {
+            errorMessage = "Por favor, completa todos los campos";
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            var result = await AuthService.LoginAsync(email, password);
+            bool success = result.success;
+            string message = result.message;
+            dynamic userData = result.userData;
+
+            if (success)
+            {
+                // Guardar datos de autenticación
+                await AuthService.SaveAuthData(userData);
+
+                // Login exitoso - redirigir al home
+                NavManager.NavigateTo("/", forceLoad: true);
+            }
+            else
+            {
+                errorMessage = message;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorMessage = $"Error al iniciar sesión: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await HandleLogin();
+        }
+    }
+}

@@ -1,0 +1,389 @@
+﻿@page "/"
+@using Viajeros.Services
+@using Viajeros.Models
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject AuthService AuthService
+@implements IDisposable
+
+<link rel="stylesheet" href="css/Home.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<div class="app-container">
+
+    <section class="location-selectors">
+        <div class="dropdown-item">
+            <label>País</label>
+            <select @bind="idPaisSeleccionado" @bind:after="OnPaisCambiado">
+                <option value="0">Seleccione país</option>
+                @foreach (var pais in paises)
+                {
+                    <option value="@pais.id_pais">@pais.pais</option>
+                }
+            </select>
+        </div>
+        <div class="dropdown-item">
+            <label>Estado</label>
+            <select @bind="idEstadoSeleccionado" @bind:after="OnEstadoCambiado" disabled="@(idPaisSeleccionado == 0)">
+                <option value="0">Seleccione estado</option>
+                @foreach (var estado in estados)
+                {
+                    <option value="@estado.id_estado">@estado.estado</option>
+                }
+            </select>
+        </div>
+    </section>
+
+    <section class="travel-categories">
+        <h2 class="titulo-seccion">Categorías de viaje</h2>
+        <div class="categories-grid">
+            <div class="category-item" @onclick="() => FiltrarPorCategoria(1)">
+                <div class="icon-box beach-color">
+                    <i class="fas fa-umbrella-beach"></i>
+                </div>
+                <span>Playas</span>
+            </div>
+            <div class="category-item" @onclick="() => FiltrarPorCategoria(2)">
+                <div class="icon-box mountain-color">
+                    <i class="fas fa-mountain"></i>
+                </div>
+                <span>Montañas</span>
+            </div>
+            <div class="category-item" @onclick="() => FiltrarPorCategoria(3)">
+                <div class="icon-box village-color">
+                    <i class="fas fa-home"></i>
+                </div>
+                <span>Pueblos</span>
+            </div>
+            <div class="category-item" @onclick="() => FiltrarPorCategoria(4)">
+                <div class="icon-box archaeology-color">
+                    <i class="fas fa-archway"></i>
+                </div>
+                <span>Arqueología</span>
+            </div>
+        </div>
+    </section>
+
+    <div class="contenedor-favoritos">
+        <div class="seccion-favoritos">
+            <h2 class="titulo-seccion">@TituloSeccion</h2>
+
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="mensaje-error">
+                    @mensajeError
+                </div>
+            }
+
+            @if (cargando)
+            {
+                <div class="cargando">Cargando lugares...</div>
+            }
+            else if (lugares == null || !lugares.Any())
+            {
+                <div class="sin-resultados">No se encontraron lugares para la ubicación seleccionada</div>
+            }
+            else
+            {
+                <div class="lista-favoritos">
+                    @foreach (var lugar in lugares)
+                    {
+                        <div class="item-favorito" @onclick="() => NavigateToPlace(lugar.Id_lugar)">
+                            <div class="contenedor-imagen">
+                                @if (!string.IsNullOrEmpty(lugar.Imagen))
+                                {
+                                    <ImagenLugar NombreImagen="@lugar.Imagen"
+                                                 AltText="@lugar.NombreLugar"
+                                                 BaseUrl="@baseUrl" />
+                                }
+                                else
+                                {
+                                    <div class="imagen-placeholder">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                }
+                            </div>
+                            <div class="info-lugar">
+                                <h3 class="nombre-lugar">@lugar.NombreLugar</h3>
+                                <div class="calificacion">
+                                    <span class="estrellas">@RenderEstrellas(lugar.CalificacionPromedio)</span>
+                                    <span class="numero-calificacion">@lugar.CalificacionPromedio.ToString("0.0")</span>
+                                </div>
+                                <p class="comentario">
+                                    @if (!string.IsNullOrEmpty(lugar.UltimoComentario?.comentario))
+                                    {
+                                        @(lugar.UltimoComentario.comentario.Length > 100 ?
+                                                                    lugar.UltimoComentario.comentario.Substring(0, 100) + "..." :
+                                                                    lugar.UltimoComentario.comentario)
+                                                        }
+                                    else
+                                    {
+                                        <text>Sin comentarios aún</text>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="seccion-recomendar">
+        <a href="/recomendar" class="enlace-recomendar"> ¿Quieres recomendar un lugar? </a>
+    </div>
+</div>
+
+@code {
+    private List<LugarConUltimoComentarioYEstrellasDto> lugares = new();
+    private List<PaisDto> paises = new();
+    private List<EstadoDto> estados = new();
+
+    private bool cargando = true;
+    private string TituloSeccion = "Destinos populares";
+    private string mensajeError = string.Empty;
+    private int? categoriaSeleccionada = null;
+    private string baseUrl = string.Empty;
+    private AuthData authState = new();
+
+    private int idPaisSeleccionado = 0;
+    private int idEstadoSeleccionado = 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthService.GetAuthStateAsync();
+        await ObtenerConexionYCargarDatos();
+
+        // Suscribirse a cambios de navegación
+        Navigation.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, Microsoft.AspNetCore.Components.Routing.LocationChangedEventArgs e)
+    {
+        // Si la URL cambió a "/" y venimos de otra página, resetear filtros
+        var uri = new Uri(e.Location);
+        if (uri.AbsolutePath == "/" && e.IsNavigationIntercepted)
+        {
+            ResetearFiltros();
+        }
+    }
+
+    private async Task ObtenerConexionYCargarDatos()
+    {
+        try
+        {
+            mensajeError = "🔍 Estableciendo conexión con el servidor...";
+            cargando = true;
+            StateHasChanged();
+
+            var (success, workingUrl) = await ApiService.ProbarConexion();
+
+            if (success)
+            {
+                baseUrl = workingUrl;
+                Console.WriteLine($"✅ BaseUrl establecida como: {baseUrl}");
+                mensajeError = string.Empty;
+
+                // Cargar países primero
+                await CargarPaises();
+            }
+            else
+            {
+                mensajeError = "❌ No se pudo establecer conexión con el servidor. Verifica que tu API esté ejecutándose.";
+                cargando = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"💥 Error: {ex.Message}";
+            cargando = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task CargarPaises()
+    {
+        try
+        {
+            paises = await ApiService.ObtenerPaises(baseUrl);
+
+            // Si hay países, seleccionar el primero automáticamente
+            if (paises.Any())
+            {
+                idPaisSeleccionado = paises.First().id_pais;
+                await OnPaisCambiado();
+            }
+            else
+            {
+                cargando = false;
+                mensajeError = "No se encontraron países disponibles";
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar países: {ex.Message}";
+            cargando = false;
+        }
+        StateHasChanged();
+    }
+
+    private async Task OnPaisCambiado()
+    {
+        if (idPaisSeleccionado > 0)
+        {
+            try
+            {
+                idEstadoSeleccionado = 0;
+                estados.Clear();
+                cargando = true;
+                StateHasChanged();
+
+                estados = await ApiService.ObtenerEstadosPorPais(baseUrl, idPaisSeleccionado);
+
+                // Si hay estados, seleccionar el primero automáticamente
+                if (estados.Any())
+                {
+                    idEstadoSeleccionado = estados.First().id_estado;
+                    await OnEstadoCambiado();
+                }
+                else
+                {
+                    cargando = false;
+                    mensajeError = "No se encontraron estados para este país";
+                }
+            }
+            catch (Exception ex)
+            {
+                mensajeError = $"Error al cargar estados: {ex.Message}";
+                cargando = false;
+            }
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnEstadoCambiado()
+    {
+        if (idEstadoSeleccionado > 0 && idPaisSeleccionado > 0)
+        {
+            await CargarLugares();
+        }
+    }
+
+    private async Task CargarLugares()
+    {
+        // Validar que estén seleccionados país y estado
+        if (idPaisSeleccionado == 0 || idEstadoSeleccionado == 0)
+        {
+            lugares = new List<LugarConUltimoComentarioYEstrellasDto>();
+            cargando = false;
+            return;
+        }
+
+        cargando = true;
+        StateHasChanged();
+
+        try
+        {
+            if (categoriaSeleccionada.HasValue)
+            {
+                lugares = await ApiService.ObtenerLugaresPorCategoria(
+                    baseUrl,
+                    categoriaSeleccionada.Value,
+                    idPaisSeleccionado,
+                    idEstadoSeleccionado
+                );
+                TituloSeccion = ObtenerNombreCategoria(categoriaSeleccionada.Value);
+            }
+            else
+            {
+                lugares = await ApiService.ObtenerTodosLugares(
+                    baseUrl,
+                    idPaisSeleccionado,
+                    idEstadoSeleccionado
+                );
+                TituloSeccion = "Destinos populares";
+            }
+
+            Console.WriteLine($"📊 Total lugares cargados: {lugares.Count}");
+            mensajeError = string.Empty;
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al cargar lugares: {ex.Message}";
+            lugares = new List<LugarConUltimoComentarioYEstrellasDto>();
+        }
+
+        cargando = false;
+        StateHasChanged();
+    }
+
+    private async Task FiltrarPorCategoria(int idCategoria)
+    {
+        categoriaSeleccionada = idCategoria;
+        await CargarLugares();
+    }
+
+    private void NavigateToPlace(int idLugar)
+    {
+        if (authState == null || !authState.IsAuthenticated)
+        {
+            Navigation.NavigateTo($"/descripcion/{idLugar}");
+            return;
+        }
+
+        if (authState.IsAdmin)
+        {
+            Navigation.NavigateTo($"/editar/{idLugar}");
+        }
+        else
+        {
+            Navigation.NavigateTo($"/descripcion/{idLugar}");
+        }
+    }
+
+    private string RenderEstrellas(decimal calificacion)
+    {
+        int estrellasLlenas = (int)Math.Round(calificacion);
+        string resultado = "";
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (i < estrellasLlenas)
+                resultado += "★";
+            else
+                resultado += "☆";
+        }
+
+        return resultado;
+    }
+
+    private string ObtenerNombreCategoria(int idCategoria)
+    {
+        return idCategoria switch
+        {
+            1 => "Playas",
+            2 => "Montañas",
+            3 => "Pueblos",
+            4 => "Arqueología",
+            _ => "Destinos populares"
+        };
+    }
+
+    private async void ResetearFiltros()
+    {
+        categoriaSeleccionada = null;
+        TituloSeccion = "Destinos populares";
+
+        // Recargar lugares sin filtro de categoría
+        if (idPaisSeleccionado > 0 && idEstadoSeleccionado > 0)
+        {
+            await CargarLugares();
+            StateHasChanged();
+        }
+    }
+
+    public void Dispose()
+    {
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+}

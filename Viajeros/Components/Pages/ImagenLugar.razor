@@ -1,0 +1,82 @@
+﻿@if (!string.IsNullOrEmpty(imagenDataUrl))
+{
+    <img src="@imagenDataUrl"
+         alt="@AltText"
+         class="imagen-lugar"
+         style="display: block; width: 100%; height: 100%; object-fit: cover;" />
+}
+else if (cargando)
+{
+    <div class="imagen-placeholder">
+        <i class="fas fa-spinner fa-spin"></i>
+    </div>
+}
+else
+{
+    <div class="imagen-placeholder">
+        <i class="fas fa-image"></i>
+    </div>
+}
+
+@code {
+    [Parameter] public string NombreImagen { get; set; } = "";
+    [Parameter] public string AltText { get; set; } = "";
+    [Parameter] public string BaseUrl { get; set; } = "";
+
+    private string imagenDataUrl = "";
+    private bool cargando = true;
+    private static Dictionary<string, string> cache = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (string.IsNullOrEmpty(NombreImagen) || string.IsNullOrEmpty(BaseUrl))
+        {
+            cargando = false;
+            return;
+        }
+
+        if (NombreImagen.StartsWith("http"))
+        {
+            imagenDataUrl = NombreImagen;
+            cargando = false;
+            return;
+        }
+
+        // Verificar caché
+        if (cache.ContainsKey(NombreImagen))
+        {
+            imagenDataUrl = cache[NombreImagen];
+            cargando = false;
+            return;
+        }
+
+        await CargarImagen();
+    }
+
+    private async Task CargarImagen()
+    {
+        try
+        {
+            var url = $"{BaseUrl}/uploads/{NombreImagen}";
+            Console.WriteLine($"📥 Cargando imagen: {url}");
+
+            using var httpClient = new HttpClient();
+            httpClient.Timeout = TimeSpan.FromSeconds(10);
+            var imageBytes = await httpClient.GetByteArrayAsync(url);
+            var base64 = Convert.ToBase64String(imageBytes);
+            imagenDataUrl = $"data:image/jpeg;base64,{base64}";
+
+            cache[NombreImagen] = imagenDataUrl;
+            Console.WriteLine($"✅ Imagen cargada como Base64: {NombreImagen}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"❌ Error cargando imagen: {ex.Message}");
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+}

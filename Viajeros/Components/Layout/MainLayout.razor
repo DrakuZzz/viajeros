@@ -1,0 +1,39 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page">
+    @if (ShowNavMenu)
+    {
+            <div class="sidebar">
+                <NavMenu />
+            </div>
+    }
+
+    <main>
+        <article class="content px-4">
+            @Body
+        </article>
+    </main>
+</div>
+
+@code {
+    private bool ShowNavMenu => !IsLoginOrRegisterPage();
+
+    private bool IsLoginOrRegisterPage()
+    {
+        var currentUri = NavigationManager.Uri;
+        var absolutePath = NavigationManager.ToAbsoluteUri(currentUri).AbsolutePath;
+        
+        return absolutePath.Equals("/login", StringComparison.OrdinalIgnoreCase) ||
+               absolutePath.Equals("/register", StringComparison.OrdinalIgnoreCase) ||
+               absolutePath.StartsWith("/login/", StringComparison.OrdinalIgnoreCase) ||
+               absolutePath.StartsWith("/register/", StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Inject] private NavigationManager NavigationManager { get; set; } = default!;
+
+    protected override void OnParametersSet()
+    {
+        // Forzar re-render cuando cambia la URL
+        StateHasChanged();
+    }
+}

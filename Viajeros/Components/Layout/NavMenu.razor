@@ -1,0 +1,180 @@
+﻿@using Viajeros.Services
+@inject AuthService AuthService
+@inject NavigationManager NavManager
+@implements IDisposable
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<div class="top-row ps-3 navbar navbar-dark @(busquedaActiva ? "busqueda-activa" : "")" @onclick="HandleOutsideClick">
+    <div class="container-fluid">
+        <!-- Botón de búsqueda con Font Awesome -->
+        <button class="btn-buscar" @onclick="ToggleBusqueda" @onclick:stopPropagation>
+            <i class="fas fa-search"></i>
+        </button>
+
+        <!-- Campo de búsqueda -->
+        <div class="contenedor-busqueda" id="campoBusqueda" @onclick:stopPropagation>
+            <input type="text" class="campo-busqueda" id="inputBusqueda"
+            placeholder="Escribe el lugar que deseas buscar..."
+            @bind="terminoBusqueda"
+            @onkeydown="HandleKeyDown"
+            @onclick:stopPropagation />
+        </div>
+
+        <!-- Título principal -->
+        <a class="navbar-brand centro" id="tituloViajeros" href="/">Viajeros</a>
+        <div class="espacio-derecho"></div>
+    </div>
+</div>
+
+<input type="checkbox" title="Navigation menu" class="navbar-toggler" id="navbarToggler" />
+
+<div class="nav-scrollable" @onclick="ToggleNavMenu">
+    <nav class="flex-column">
+        <!-- Home - Siempre visible -->
+        <div class="nav-item px-3">
+            <a class="nav-link @(IsActive("/") ? "active" : "")" href="/" @onclick="HandleNavClick">Home</a>
+        </div>
+
+        <!-- Login - Solo si NO está autenticado -->
+        @if (!authState.IsAuthenticated)
+        {
+            <div class="nav-item px-3">
+                <a class="nav-link @(IsActive("/login") ? "active" : "")" href="/Login" @onclick="HandleNavClick">Login</a>
+            </div>
+        }
+
+        <!-- Enlaces para USUARIO NORMAL (autenticado y NO admin) -->
+        @if (authState.IsAuthenticated && !authState.IsAdmin)
+        {
+            <div class="nav-item px-3">
+                <a class="nav-link @(IsActive("/favoritos") ? "active" : "")" href="/favoritos" @onclick="HandleNavClick">Favoritos</a>
+            </div>
+            <div class="nav-item px-3">
+                <a class="nav-link @(IsActive("/perfil") ? "active" : "")" href="/perfil" @onclick="HandleNavClick">Perfil</a>
+            </div>
+        }
+
+        <!-- Enlaces para ADMINISTRADOR (autenticado Y admin) -->
+        @if (authState.IsAuthenticated && authState.IsAdmin)
+        {
+            <div class="nav-item px-3">
+                <a class="nav-link @(IsActive("/perfil") ? "active" : "")" href="/perfil" @onclick="HandleNavClick">Perfil</a>
+            </div>
+            <div class="nav-item px-3">
+                <a class="nav-link @(IsActive("/agregar") ? "active" : "")" href="/agregar" @onclick="HandleNavClick">Agregar</a>
+            </div>
+            <div class="nav-item px-3">
+                <a class="nav-link @(IsActive("/agragaradmin") ? "active" : "")" href="/agragaradmin" @onclick="HandleNavClick">Añadir Admin</a>
+            </div>
+            <div class="nav-item px-3">
+                <a class="nav-link @(IsActive("/agregaropciones") ? "active" : "")" href="/agregaropciones" @onclick="HandleNavClick">Añadir Opciones</a>
+            </div>
+        }
+    </nav>
+</div>
+
+@code {
+    [Inject] private IJSRuntime JSRuntime { get; set; } = default!;
+    private bool busquedaActiva = false;
+    private string terminoBusqueda = string.Empty;
+    private AuthData authState = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthService.GetAuthStateAsync();
+        NavManager.LocationChanged += OnLocationChanged; // 👈 Suscribirse al cambio de URL
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // Cada vez que cambia la URL, forzar re-render
+        InvokeAsync(StateHasChanged);
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (busquedaActiva)
+        {
+            await JSRuntime.InvokeVoidAsync("eval",
+                "setTimeout(() => { const input = document.getElementById('inputBusqueda'); if (input) input.focus(); }, 50);");
+        }
+    }
+
+    private bool IsActive(string url)
+    {
+        var uri = new Uri(NavManager.Uri);
+        var path = uri.AbsolutePath.TrimEnd('/').ToLower();
+        var target = url.TrimEnd('/').ToLower();
+
+        if (string.IsNullOrEmpty(path))
+            path = "/";
+
+        if (target == "/")
+            return path == "/";
+
+        return path == target;
+    }
+
+    private void ToggleBusqueda()
+    {
+        busquedaActiva = !busquedaActiva;
+        if (!busquedaActiva)
+            terminoBusqueda = string.Empty;
+    }
+
+    private void HandleOutsideClick()
+    {
+        if (busquedaActiva)
+        {
+            busquedaActiva = false;
+            terminoBusqueda = string.Empty;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+        {
+            await RealizarBusqueda();
+        }
+        else if (e.Key == "Escape")
+        {
+            busquedaActiva = false;
+            terminoBusqueda = string.Empty;
+            StateHasChanged();
+        }
+    }
+
+    private async Task RealizarBusqueda()
+    {
+        if (!string.IsNullOrWhiteSpace(terminoBusqueda))
+        {
+            busquedaActiva = false;
+            var terminoLimpio = terminoBusqueda.Trim();
+            terminoBusqueda = string.Empty;
+            StateHasChanged();
+
+            NavManager.NavigateTo($"/buscar?q={Uri.EscapeDataString(terminoLimpio)}");
+        }
+    }
+
+    private void HandleNavClick()
+    {
+        JSRuntime.InvokeVoidAsync("eval",
+            "const toggler = document.getElementById('navbarToggler'); if (toggler && toggler.checked) toggler.checked = false;");
+    }
+
+    private void ToggleNavMenu()
+    {
+        JSRuntime.InvokeVoidAsync("eval",
+            "const toggler = document.getElementById('navbarToggler'); if (toggler) toggler.click();");
+    }
+
+    public void Dispose()
+    {
+        // 👇 Muy importante: desuscribirse al salir
+        NavManager.LocationChanged -= OnLocationChanged;
+    }
+}

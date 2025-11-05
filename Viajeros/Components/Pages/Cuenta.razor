@@ -1,0 +1,633 @@
+﻿@page "/perfil"
+@using Viajeros.Services
+@using Viajeros.Models
+@using Microsoft.AspNetCore.Components.Forms
+@inject AuthService AuthService
+@inject ApiService ApiService
+@inject ImageUploadService ImageUploadService
+@inject NavigationManager NavManager
+@inject IJSRuntime JSRuntime
+
+<link rel="stylesheet" href="css/cuenta.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+<div class="profile-container">
+    @if (authState.IsAuthenticated && authState.IsAdmin)
+    {
+        <!-- Solo botón de salir para admin -->
+        <div class="logout-section">
+            <button type="button" class="btn-logout" @onclick="HandleLogout" disabled="@isLoading">Salir de la cuenta</button>
+        </div>
+    }
+    else if (authState.IsAuthenticated)
+    {
+        <!-- Formulario completo para usuario normal -->
+        <div class="account-form">
+            <h2>Cuenta</h2>
+
+            <!-- Imagen de perfil -->
+            <div class="profile-image-section">
+
+                <div class="profile-avatar">
+                    @if (!string.IsNullOrEmpty(usuario.Imgperfil))
+                    {
+                        <ImagenLugar NombreImagen="@usuario.Imgperfil"
+                                     AltText="Foto de perfil"
+                                     BaseUrl="@baseUrl" />
+                    }
+                    else
+                    {
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                    }
+                </div>
+
+                <InputFile id="fileInput" OnChange="HandleImageUpload" accept="image/*" style="display:none;" />
+
+                <button type="button" class="btn-change-pic" @onclick="TriggerFileInput" disabled="@isUploading">
+                    @if (isUploading)
+                    {
+                        <span>Subiendo...</span>
+                    }
+                    else
+                    {
+                        <span>Cambiar Imagen</span>
+                    }
+                </button>
+
+                @if (!string.IsNullOrEmpty(usuario.Imgperfil))
+                {
+                    <button type="button" class="btn-remove-pic" @onclick="HandleRemoveImage" disabled="@isUploading">
+                        Eliminar Imagen
+                    </button>
+                }
+            </div>
+
+            <EditForm Model="usuario" OnValidSubmit="HandleUpdate">
+                <DataAnnotationsValidator />
+
+                <!-- Datos Personales -->
+                <div class="form-section">
+                    <div class="section-title">Datos Personales</div>
+
+                    <div class="input-group">
+                        <label for="nombres">Nombre/s</label>
+                        <InputText id="nombres" @bind-Value="usuario.Nombres" placeholder="Nombre/s" class="form-input" />
+                        <ValidationMessage For="@(() => usuario.Nombres)" />
+                    </div>
+
+                    <div class="input-group">
+                        <label for="paterno">Paterno</label>
+                        <InputText id="paterno" @bind-Value="usuario.Paterno" placeholder="Paterno" class="form-input" />
+                    </div>
+
+                    <div class="input-group">
+                        <label for="materno">Materno</label>
+                        <InputText id="materno" @bind-Value="usuario.Materno" placeholder="Materno" class="form-input" />
+                    </div>
+
+                    <div class="input-group">
+                        <label for="email">Email</label>
+                        <InputText id="email" @bind-Value="usuario.Email" placeholder="Email" class="form-input" />
+                        <ValidationMessage For="@(() => usuario.Email)" />
+                    </div>
+                </div>
+
+                <!-- Mi Zona -->
+                <div class="form-section location-section">
+                    <h3>Mi Zona</h3>
+                    <div class="location-grid">
+                        <div class="location-field">
+                            <label for="pais">País</label>
+                            <select id="pais" class="form-select" @onchange="OnPaisChange">
+                                <option value="0">@(paisActual ?? "Seleccione país")</option>
+                                @foreach (var pais in paises)
+                                {
+                                    <option value="@pais.id_pais" selected="@(pais.id_pais == usuario.Id_pais)">@pais.pais</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="location-field">
+                            <label for="estado">Estado</label>
+                            <select id="estado" class="form-select" @onchange="OnEstadoChange" disabled="@(usuario.Id_pais == 0)">
+                                <option value="0">@(estadoActual ?? "Seleccione estado")</option>
+                                @foreach (var estado in estados)
+                                {
+                                    <option value="@estado.id_estado" selected="@(estado.id_estado == usuario.Id_estado)">@estado.estado</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="location-field">
+                            <label for="ciudad">Ciudad</label>
+                            <select id="ciudad" class="form-select" @onchange="OnCiudadChange" disabled="@(usuario.Id_estado == 0)">
+                                <option value="0">@(ciudadActual ?? "Seleccione ciudad")</option>
+                                @foreach (var ciudad in ciudades)
+                                {
+                                    <option value="@ciudad.id_ciudad" selected="@(ciudad.id_ciudad == usuario.Id_ciudad)">@ciudad.ciudad</option>
+                                }
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="action-buttons">
+                    <button type="submit" class="btn btn-update" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span>Actualizando...</span>
+                        }
+                        else
+                        {
+                            <span>Actualizar</span>
+                        }
+                    </button>
+                    <button type="button" class="btn btn-cancel" @onclick="HandleCancel" disabled="@isLoading">Cancelar</button>
+                </div>
+            </EditForm>
+
+        </div>
+        <!-- Botón salir para usuarios normales -->
+        <div class="logout-section">
+            <button type="button" class="btn-logout" @onclick="HandleLogout" disabled="@isLoading">Salir de la cuenta</button>
+        </div>
+    }
+</div>
+
+<!-- ALERTA FLOTANTE -->
+@if (!string.IsNullOrEmpty(mensaje))
+{
+    <div class="alerta-flotante @(esError ? "alerta-error" : "alerta-exito")">
+        <div class="alerta-contenido">
+            <span class="alerta-icono">
+                <i class="fa-solid @(esError ? "fa-triangle-exclamation" : "fa-circle-check")"></i>
+            </span>
+            <span class="alerta-mensaje">@mensaje</span>
+            <button type="button" class="alerta-cerrar" @onclick="() => mensaje = string.Empty">&times;</button>
+        </div>
+    </div>
+}
+
+@code {
+    private UsuarioPerfil usuario = new();
+    private UsuarioPerfil usuarioOriginal = new();
+    private List<PaisDto> paises = new();
+    private List<EstadoDto> estados = new();
+    private List<CiudadDto> ciudades = new();
+    private string mensaje = string.Empty;
+    private bool esError = false;
+    private bool isLoading = false;
+    private bool isUploading = false;
+    private string baseUrl = string.Empty;
+    private string imagenAnterior = string.Empty;
+
+    private string paisActual = "Seleccione país";
+    private string estadoActual = "Seleccione estado";
+    private string ciudadActual = "Seleccione ciudad";
+
+    private AuthData authState = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        authState = await AuthService.GetAuthStateAsync();
+        await CargarDatosIniciales();
+    }
+
+    private async Task CargarDatosIniciales()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var conexion = await ApiService.ProbarConexion();
+            if (!conexion.success)
+            {
+                await MostrarAlerta("Error de conexión con el servidor", true);
+                return;
+            }
+            baseUrl = conexion.workingUrl;
+            Console.WriteLine($"🔗 BaseUrl cargada: {baseUrl}");
+
+            var authState = await AuthService.GetAuthStateAsync();
+            if (!authState.IsAuthenticated)
+            {
+                NavManager.NavigateTo("/login");
+                return;
+            }
+
+            await CargarUsuarioDesdeApi(authState.UserId);
+            Console.WriteLine($"👤 Usuario cargado - Imagen: {usuario.Imgperfil}");
+
+            paises = await ApiService.ObtenerPaises(baseUrl);
+
+            if (usuario.Id_pais > 0)
+            {
+                var pais = paises.FirstOrDefault(p => p.id_pais == usuario.Id_pais);
+                if (pais != null)
+                    paisActual = pais.pais;
+
+                estados = await ApiService.ObtenerEstadosPorPais(baseUrl, usuario.Id_pais);
+            }
+
+            if (usuario.Id_estado > 0)
+            {
+                var estado = estados.FirstOrDefault(e => e.id_estado == usuario.Id_estado);
+                if (estado != null)
+                    estadoActual = estado.estado;
+
+                ciudades = await ApiService.ObtenerCiudadesPorEstado(baseUrl, usuario.Id_estado);
+            }
+
+            if (usuario.Id_ciudad > 0)
+            {
+                var ciudad = ciudades.FirstOrDefault(c => c.id_ciudad == usuario.Id_ciudad);
+                if (ciudad != null)
+                    ciudadActual = ciudad.ciudad;
+            }
+
+            usuarioOriginal = new UsuarioPerfil
+            {
+                Nombres = usuario.Nombres,
+                Paterno = usuario.Paterno,
+                Materno = usuario.Materno,
+                Email = usuario.Email,
+                Id_pais = usuario.Id_pais,
+                Id_estado = usuario.Id_estado,
+                Id_ciudad = usuario.Id_ciudad,
+                Imgperfil = usuario.Imgperfil
+            };
+        }
+        catch (Exception ex)
+        {
+            await MostrarAlerta($"Error al cargar datos: {ex.Message}", true);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CargarUsuarioDesdeApi(int userId)
+    {
+        try
+        {
+            var usuarioApi = await ApiService.ObtenerUsuarioPorId(baseUrl, userId);
+
+            usuario = new UsuarioPerfil
+            {
+                Id_usuario = usuarioApi.Id_usuario,
+                Nombres = usuarioApi.Nombres,
+                Paterno = usuarioApi.Paterno,
+                Materno = usuarioApi.Materno,
+                Email = usuarioApi.Email,
+                Id_pais = usuarioApi.Id_pais,
+                Id_estado = usuarioApi.Id_estado,
+                Id_ciudad = usuarioApi.Id_ciudad,
+                Imgperfil = usuarioApi.Imgperfil
+            };
+        }
+        catch
+        {
+            usuario = new UsuarioPerfil();
+        }
+    }
+
+    private async Task TriggerFileInput()
+    {
+        await JSRuntime.InvokeVoidAsync("eval", "document.getElementById('fileInput').click()");
+    }
+
+    private async Task HandleImageUpload(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            isUploading = true;
+            StateHasChanged();
+
+            // Validar extensión
+            var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(file.Name)?.ToLower() ?? "";
+
+            if (!extensionesPermitidas.Contains(extension))
+            {
+                await MostrarAlerta("Solo se permiten imágenes JPG, PNG, GIF o WebP", true);
+                return;
+            }
+
+            // Validar tamaño (5MB)
+            if (file.Size > 5 * 1024 * 1024)
+            {
+                await MostrarAlerta("La imagen no puede superar 5MB", true);
+                return;
+            }
+
+            // Guardar imagen anterior para eliminarla después
+            imagenAnterior = usuario.Imgperfil;
+
+            // Subir imagen usando el servicio
+            using var stream = file.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            var resultado = await ImageUploadService.SubirImagen(stream, file.Name);
+
+            if (resultado?.Exito == true)
+            {
+                // Actualizar la imagen en el usuario (solo el nombre del archivo)
+                usuario.Imgperfil = resultado.Url; // Ya viene como nombre de archivo desde tu servicio
+
+                // Guardar en la base de datos
+                await ActualizarImagenPerfil(usuario.Imgperfil);
+
+                // Eliminar imagen anterior si existe y es diferente
+                if (!string.IsNullOrEmpty(imagenAnterior) && imagenAnterior != usuario.Imgperfil)
+                {
+                    await EliminarImagenAnterior(imagenAnterior);
+                }
+
+                await MostrarAlerta("Imagen actualizada correctamente");
+            }
+            else
+            {
+                var mensajeError = resultado?.Mensaje ?? "Error desconocido";
+                await MostrarAlerta($"Error al subir imagen: {mensajeError}", true);
+                usuario.Imgperfil = imagenAnterior; // Restaurar imagen anterior
+            }
+        }
+        catch (Exception ex)
+        {
+            await MostrarAlerta($"Error al procesar imagen: {ex.Message}", true);
+            usuario.Imgperfil = imagenAnterior; // Restaurar imagen anterior
+        }
+        finally
+        {
+            isUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ActualizarImagenPerfil(string nombreImagen)
+    {
+        try
+        {
+            var authState = await AuthService.GetAuthStateAsync();
+            int idUsuario = authState.UserId;
+
+            var usuarioDto = new UsuarioUpdateDto
+            {
+                Imgperfil = nombreImagen,
+                Nombres = usuario.Nombres,
+                Paterno = usuario.Paterno,
+                Materno = usuario.Materno,
+                Email = usuario.Email,
+                Id_pais = usuario.Id_pais,
+                Id_estado = usuario.Id_estado,
+                Id_ciudad = usuario.Id_ciudad
+            };
+
+            var result = await ApiService.ActualizarUsuarioAsync(idUsuario, usuarioDto, baseUrl);
+
+            if (result.success)
+            {
+                usuarioOriginal.Imgperfil = nombreImagen;
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al actualizar imagen en BD: {ex.Message}");
+        }
+    }
+
+    private async Task EliminarImagenAnterior(string nombreImagen)
+    {
+        try
+        {
+            // Usar el servicio si tiene un método para eliminar, o hacer la llamada directa
+            using var httpClient = new HttpClient();
+            await httpClient.DeleteAsync($"{baseUrl}/api/upload/eliminar-imagen/{nombreImagen}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al eliminar imagen anterior: {ex.Message}");
+        }
+    }
+
+    private async Task HandleRemoveImage()
+    {
+        try
+        {
+            isUploading = true;
+            StateHasChanged();
+
+            var imagenAEliminar = usuario.Imgperfil;
+
+            // Actualizar en BD primero
+            usuario.Imgperfil = string.Empty;
+            await ActualizarImagenPerfil(string.Empty);
+
+            // Eliminar archivo físico
+            if (!string.IsNullOrEmpty(imagenAEliminar))
+            {
+                await EliminarImagenAnterior(imagenAEliminar);
+            }
+
+            usuarioOriginal.Imgperfil = string.Empty;
+            await MostrarAlerta("Imagen eliminada correctamente");
+        }
+        catch (Exception ex)
+        {
+            await MostrarAlerta($"Error al eliminar imagen: {ex.Message}", true);
+        }
+        finally
+        {
+            isUploading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleUpdate()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            var authState = await AuthService.GetAuthStateAsync();
+            int idUsuario = authState.UserId;
+
+            // Verificar si la imagen cambió
+            bool imagenCambio = usuario.Imgperfil != usuarioOriginal.Imgperfil;
+
+            var usuarioDto = new UsuarioUpdateDto
+            {
+                Imgperfil = usuario.Imgperfil,
+                Nombres = usuario.Nombres,
+                Paterno = usuario.Paterno,
+                Materno = usuario.Materno,
+                Email = usuario.Email,
+                Id_pais = usuario.Id_pais,
+                Id_estado = usuario.Id_estado,
+                Id_ciudad = usuario.Id_ciudad
+            };
+
+            var result = await ApiService.ActualizarUsuarioAsync(idUsuario, usuarioDto, baseUrl);
+
+            if (result.success)
+            {
+                // Si la imagen cambió, eliminar la anterior del servidor
+                if (imagenCambio && !string.IsNullOrEmpty(usuarioOriginal.Imgperfil))
+                {
+                    await EliminarImagenAnterior(usuarioOriginal.Imgperfil);
+                }
+
+                usuarioOriginal = new UsuarioPerfil
+                {
+                    Nombres = usuario.Nombres,
+                    Paterno = usuario.Paterno,
+                    Materno = usuario.Materno,
+                    Email = usuario.Email,
+                    Id_pais = usuario.Id_pais,
+                    Id_estado = usuario.Id_estado,
+                    Id_ciudad = usuario.Id_ciudad,
+                    Imgperfil = usuario.Imgperfil
+                };
+
+                imagenAnterior = string.Empty;
+                await MostrarAlerta("Perfil actualizado con éxito");
+            }
+            else
+            {
+                await MostrarAlerta(result.message, true);
+            }
+        }
+        catch (Exception ex)
+        {
+            await MostrarAlerta($"Error al actualizar perfil: {ex.Message}", true);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task HandleCancel()
+    {
+        // Si había una imagen temporal subida pero no guardada, eliminarla del servidor
+        if (!string.IsNullOrEmpty(usuario.Imgperfil) &&
+            usuario.Imgperfil != usuarioOriginal.Imgperfil &&
+            !string.IsNullOrEmpty(imagenAnterior))
+        {
+            await EliminarImagenAnterior(usuario.Imgperfil);
+        }
+
+        // Recargar todos los datos desde la API
+        await CargarDatosIniciales();
+        await MostrarAlerta("Cambios cancelados");
+    }
+
+    private async Task HandleLogout()
+    {
+        try
+        {
+            isLoading = true;
+            StateHasChanged();
+
+            await AuthService.LogoutAsync();
+            NavManager.NavigateTo("/", forceLoad: true);
+        }
+        catch (Exception ex)
+        {
+            await MostrarAlerta($"Error al cerrar sesión: {ex.Message}", true);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnPaisChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int paisId))
+        {
+            usuario.Id_pais = paisId;
+            usuario.Id_estado = 0;
+            usuario.Id_ciudad = 0;
+
+            estados.Clear();
+            ciudades.Clear();
+
+            estadoActual = "Seleccione estado";
+            ciudadActual = "Seleccione ciudad";
+
+            if (paisId > 0)
+            {
+                estados = await ApiService.ObtenerEstadosPorPais(baseUrl, paisId);
+                var pais = paises.FirstOrDefault(p => p.id_pais == paisId);
+                if (pais != null)
+                    paisActual = pais.pais;
+            }
+            else
+                paisActual = "Seleccione país";
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnEstadoChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int estadoId))
+        {
+            usuario.Id_estado = estadoId;
+            usuario.Id_ciudad = 0;
+
+            ciudades.Clear();
+            ciudadActual = "Seleccione ciudad";
+
+            if (estadoId > 0)
+            {
+                ciudades = await ApiService.ObtenerCiudadesPorEstado(baseUrl, estadoId);
+                var estado = estados.FirstOrDefault(e => e.id_estado == estadoId);
+                if (estado != null)
+                    estadoActual = estado.estado;
+            }
+            else
+                estadoActual = "Seleccione estado";
+
+            StateHasChanged();
+        }
+    }
+
+    private void OnCiudadChange(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int ciudadId))
+        {
+            usuario.Id_ciudad = ciudadId;
+            if (ciudadId > 0)
+            {
+                var ciudad = ciudades.FirstOrDefault(c => c.id_ciudad == ciudadId);
+                if (ciudad != null)
+                    ciudadActual = ciudad.ciudad;
+            }
+            else
+                ciudadActual = "Seleccione ciudad";
+
+            StateHasChanged();
+        }
+    }
+
+    private async Task MostrarAlerta(string msg, bool error = false)
+    {
+        mensaje = msg;
+        esError = error;
+        StateHasChanged();
+        await Task.Delay(5000);
+        mensaje = string.Empty;
+        StateHasChanged();
+    }
+}

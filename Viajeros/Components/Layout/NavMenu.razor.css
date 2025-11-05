@@ -1,0 +1,334 @@
+/* ============================================= */
+/* ESTILOS BASE DEL HEADER Y NAVEGACIÓN */
+/* ============================================= */
+
+.top-row {
+    height: 3.5rem;
+    background-color: #82D7FE;
+    display: flex;
+    align-items: center;
+    box-shadow: rgba(0, 0, 0, 0.45) 0px 25px 20px -20px;
+    position: relative;
+    z-index: 5;
+    /* Transición acelerada por hardware */
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    will-change: transform, opacity;
+    transform: translateZ(0);
+}
+
+.container-fluid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    position: relative;
+}
+
+/* Nombre de la marca */
+.navbar-brand {
+    font-size: 1.6rem;
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    transition: all 0.3s ease;
+}
+
+/* Centrado del nombre */
+.centro {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Espacio a la derecha */
+.espacio-derecho {
+    width: 40px;
+}
+
+/* ============================================= */
+/* BOTÓN DE BÚSQUEDA Y CAMPO - CON FONT AWESOME */
+/* ============================================= */
+
+/* Botón de búsqueda con Font Awesome */
+.btn-buscar {
+    background: none;
+    border: none;
+    font-size: 1.3rem; /* Tamaño ligeramente aumentado */
+    color: white;
+    cursor: pointer;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: all 0.15s ease-out !important;
+    margin-left: 10px;
+    z-index: 12;
+    transform: translateZ(0);
+}
+
+    .btn-buscar:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        transform: scale(1.1); /* Efecto hover mejorado */
+    }
+
+    .btn-buscar i {
+        transition: transform 0.2s ease; /* Transición suave para el icono */
+    }
+
+    .btn-buscar:hover i {
+        transform: scale(1.1); /* Efecto hover en el icono */
+    }
+
+/* Campo de búsqueda - oculto por defecto */
+.contenedor-busqueda {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 0;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.15s ease-out !important;
+    z-index: 10;
+    will-change: transform, opacity;
+    text-align: center;
+    white-space: nowrap;
+}
+
+.campo-busqueda {
+    width: 100%;
+    padding: 8px 12px; /* REDUCIDO de 10px 15px */
+    border: 2px solid white;
+    border-radius: 20px; /* REDUCIDO de 25px */
+    background: #ffffff;
+    color: #000;
+    font-size: 14px; /* REDUCIDO de 15px */
+    outline: none;
+    transition: all 0.4s ease;
+    opacity: 0;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.15);
+}
+
+/* Cuando la búsqueda está activa */
+.busqueda-activa .contenedor-busqueda {
+    width: 50%; /* REDUCIDO de 60% */
+    opacity: 1;
+    visibility: visible;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.busqueda-activa .campo-busqueda {
+    opacity: 1;
+    margin: 0 auto;
+    display: inline-block;
+}
+
+.busqueda-activa .navbar-brand {
+    opacity: 0;
+    visibility: hidden;
+}
+
+.busqueda-activa .btn-buscar {
+    z-index: 15;
+}
+
+/* ============================================= */
+/* BOTÓN TOGGLE DEL MENÚ HAMBURGUESA */
+/* ============================================= */
+
+.navbar-toggler {
+    appearance: none;
+    cursor: pointer;
+    width: 3rem;
+    height: 2.5rem;
+    position: absolute;
+    top: 0.5rem;
+    right: 1rem;
+    border-radius: 4px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    /* Icono de hamburguesa */
+    .navbar-toggler::before {
+        content: '';
+        display: block;
+        width: 20px;
+        height: 2px;
+        background-color: white;
+        box-shadow: 0 -6px 0 white, 0 6px 0 white;
+        transition: all 0.3s ease;
+    }
+
+    /* Animación cuando está checked */
+    .navbar-toggler:checked::before {
+        transform: rotate(45deg);
+        box-shadow: 0 0 0 white, 0 0 0 white;
+    }
+
+    .navbar-toggler:checked::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 2px;
+        background-color: white;
+        transform: rotate(-45deg);
+    }
+
+/* ============================================= */
+/* MENÚ DESPLEGABLE */
+/* ============================================= */
+
+.nav-scrollable {
+    display: none;
+    background-color: #82D7FE;
+    padding-top: 1rem;
+    position: absolute;
+    width: 100%;
+    z-index: 100;
+    top: 3.5rem;
+    left: 0;
+    box-shadow: rgba(0, 0, 0, 0.45) 0px 25px 20px -20px;
+    /* Transición acelerada por hardware */
+    transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    will-change: transform;
+    transform: translateZ(0);
+}
+
+.navbar-toggler:checked ~ .nav-scrollable {
+    display: block;
+}
+
+.nav-item {
+    font-size: 1rem;
+    padding: 0.5rem 1rem;
+}
+
+/* ============================================= */
+/* ESTILOS SIMPLIFICADOS PARA ENLACES */
+/* ============================================= */
+
+.nav-scrollable .nav-link {
+    color: #3e5c76;
+    font-weight: bold;
+    text-decoration: none;
+    font-size: 1.1rem;
+    display: block;
+    width: 100%;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    transition: all 0.1s ease-out !important;
+    transform: translateZ(0);
+}
+
+    /* Hover states */
+    .nav-scrollable .nav-link:hover {
+        color: #3e5c76;
+        background-color: rgba(255, 255, 255, 0.3);
+        border-radius: 4px;
+    }
+
+    /* Active states */
+    .nav-scrollable .nav-link.active {
+        background-color: rgba(255, 255, 255, 0.2);
+        border-radius: 4px;
+    }
+
+    /* Focus states */
+    .nav-scrollable .nav-link:focus {
+        outline: none;
+        box-shadow: none;
+    }
+
+/* ============================================= */
+/* PANTALLAS GRANDES (DESKTOP) */
+/* ============================================= */
+
+@media (min-width: 641px) {
+    .navbar-toggler {
+        display: none;
+    }
+
+    .nav-scrollable {
+        display: flex;
+        position: static;
+        flex-direction: row;
+        width: auto;
+        background-color: transparent;
+        padding-top: 0;
+        box-shadow: none;
+    }
+
+        /* Estilos para desktop */
+        .nav-scrollable .nav-link {
+            padding: 0 1rem;
+            font-size: 1rem;
+            display: inline-block;
+            width: auto;
+        }
+
+            .nav-scrollable .nav-link:hover {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+
+            .nav-scrollable .nav-link.active {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
+}
+
+/* ============================================= */
+/* OPTIMIZACIÓN PARA MÓVILES */
+/* ============================================= */
+
+@media (max-width: 768px) {
+    .nav-scrollable {
+        transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    }
+
+    .contenedor-busqueda {
+        width: 70% !important; /* REDUCIDO de 85% */
+    }
+
+    .campo-busqueda {
+        padding: 7px 10px; /* MÁS PEQUEÑO en móviles */
+        font-size: 13px; /* MÁS PEQUEÑO en móviles */
+    }
+}
+
+@media (max-width: 480px) {
+    .contenedor-busqueda {
+        width: 65% !important; /* MÁS PEQUEÑO en móviles pequeños */
+    }
+
+    .campo-busqueda {
+        padding: 6px 8px; /* MÁS PEQUEÑO en móviles pequeños */
+        font-size: 12px; /* MÁS PEQUEÑO en móviles pequeños */
+    }
+}
+
+/* ============================================= */
+/* MEJORAS DE RENDIMIENTO ADICIONALES */
+/* ============================================= */
+
+/* Forzar aceleración por hardware en elementos interactivos */
+.btn-buscar,
+.navbar-toggler,
+.nav-link,
+.campo-busqueda {
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}
+
+/* Optimizar rendering para transformaciones */
+.nav-scrollable,
+.contenedor-busqueda,
+.top-row {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
+}

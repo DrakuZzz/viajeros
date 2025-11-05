@@ -1,0 +1,129 @@
+﻿@page "/register"
+@using Viajeros.Services
+@using Viajeros.Models
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+
+<link rel="stylesheet" href="css/login.css" />
+
+<div class="login">
+    <div class="encabezado-login">
+        <img src="images/LOGO.PNG" alt="Logo de Viajeros" class="logo-marca" />
+        <h1 class="nombre-marca">VIAJEROS</h1>
+        <p class="eslogan-marca">Tu guía a la aventura</p>
+    </div>
+
+    <div class="formulario-login">
+        <h2 class="titulo-form">Registro</h2>
+
+        <div class="grupo">
+            <input type="text" @bind="usuario.Nombres" placeholder="Nombre/s" class="form-input" />
+        </div>
+
+        <div class="grupo">
+            <input type="email" @bind="usuario.Email" placeholder="Correo electrónico" class="form-input" />
+        </div>
+
+        <div class="grupo">
+            <input type="password" @bind="usuario.Contraseña" placeholder="Contraseña" class="form-input" />
+        </div>
+
+        <div class="grupo">
+            <input type="password" @bind="usuario.ConfirmarContraseña" placeholder="Confirmar Contraseña" class="form-input" />
+        </div>
+
+        <button class="boton-login" @onclick="Registrarse" disabled="@isLoading">
+            Registrarse
+        </button>
+
+        <div class="enlaces">
+            <a href="/login" class="enlace">¿Ya tienes cuenta? Inicia Sesión</a>
+        </div>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(mensajeError))
+{
+    <div class="alerta-flotante alerta-error">
+        <div class="alerta-contenido">
+            <span class="alerta-icono">❌</span>
+            <span class="alerta-mensaje">@mensajeError</span>
+            <button class="alerta-cerrar" @onclick="() => mensajeError = string.Empty">&times;</button>
+        </div>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(mensajeExito))
+{
+    <div class="alerta-flotante alerta-exito">
+        <div class="alerta-contenido">
+            <span class="alerta-icono">✅</span>
+            <span class="alerta-mensaje">@mensajeExito</span>
+            <button class="alerta-cerrar" @onclick="() => mensajeExito = string.Empty">&times;</button>
+        </div>
+    </div>
+}
+
+@code {
+    private Usuario usuario = new Usuario();
+    private string mensajeError = string.Empty;
+    private string mensajeExito = string.Empty;
+    private bool isLoading = false;
+
+    private async Task Registrarse()
+    {
+        if (string.IsNullOrWhiteSpace(usuario.Nombres) ||
+            string.IsNullOrWhiteSpace(usuario.Email) ||
+            string.IsNullOrWhiteSpace(usuario.Contraseña))
+        {
+            mensajeError = "❌ Completa todos los campos";
+            return;
+        }
+
+        if (usuario.Contraseña != usuario.ConfirmarContraseña)
+        {
+            mensajeError = "❌ Las contraseñas no coinciden";
+            return;
+        }
+
+        isLoading = true;
+        mensajeError = string.Empty;
+        mensajeExito = string.Empty;
+        StateHasChanged();
+
+        try
+        {
+            // Aquí llamamos la API sin mostrar la IP ni mensaje de debug
+            var conexion = await ApiService.ProbarConexion();
+            if (!conexion.success)
+            {
+                mensajeError = "❌ No se pudo conectar con el servidor.";
+                return;
+            }
+
+            var (success, message) = await ApiService.RegistrarUsuario(usuario, conexion.workingUrl);
+
+            if (success)
+            {
+                mensajeExito = "¡Registro exitoso! Redirigiendo al login...";
+                StateHasChanged();
+
+                await Task.Delay(2000);
+                Navigation.NavigateTo("/login");
+            }
+            else
+            {
+                mensajeError = message;
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al registrar: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+}

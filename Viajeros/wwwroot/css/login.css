@@ -1,0 +1,352 @@
+﻿.login {
+    position: relative;
+    width: 100%;
+    max-width: 400px;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    color: #11546f;
+    text-align: center;
+}
+
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    background-image: url("../images/fondologin.png") !important;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+}
+
+/* Botón de regreso al home - Solo ícono de casa */
+.boton-regreso {
+    position: absolute;
+    top: 5px; /* Casi pegado arriba */
+    left: 5px; /* Casi pegado a la izquierda */
+    z-index: 1000;
+}
+
+.btn-volver-home {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    border: none;
+    border-radius: 12px;
+    font-size: 1.4rem;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    background-color: #DCF0FF;
+    color: #11546f;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+    .btn-volver-home:hover {
+        background-color: #b8dfff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .btn-volver-home:active {
+        transform: translateY(0);
+    }
+
+.encabezado-login {
+    padding-top: 60px; /* Espacio para el ícono */
+    padding-bottom: 10px;
+}
+
+.logo-marca {
+    width: 200px;
+    object-fit: contain;
+}
+
+.nombre-marca {
+    font-size: 2.5em;
+    font-weight: 700;
+    margin: 0;
+    text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
+}
+
+.eslogan-marca {
+    font-size: 1.1em;
+    font-weight: 400;
+    margin-top: 5px;
+    opacity: 0.9;
+}
+
+.formulario-login {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    width: 100%;
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+.titulo-form {
+    display: none;
+}
+
+.grupo {
+    width: 100%;
+    margin-bottom: 20px;
+}
+
+.formulario-login input[type="text"],
+.formulario-login input[type="email"],
+.formulario-login input[type="password"] {
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 10px !important;
+    background: var(--color-input-bg);
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+    outline: none;
+    color: #333;
+    background-color: rgba(255, 255, 255, 0.9);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.formulario-login input::placeholder {
+    color: #a0a0a0;
+    opacity: 1;
+}
+
+/* Estilo del Botón de Login */
+.boton-login {
+    padding: 14px;
+    border: none;
+    width: 80%;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+    background-color: #DCF0FF;
+    color: #11546f;
+    margin-top: 10px;
+    font-family: 'Poppins', sans-serif;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+    .boton-login:hover:not(:disabled) {
+        background-color: #b8dfff;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    .boton-login:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+.enlaces {
+    margin-top: 25px;
+}
+
+.enlace {
+    color: white;
+    text-decoration: none;
+    font-size: 0.95em;
+    font-weight: bold;
+    transition: opacity 0.3s ease;
+}
+
+    .enlace:hover {
+        opacity: 0.8;
+        text-decoration: underline;
+    }
+
+/* Alertas */
+.alert {
+    padding: 12px 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+    width: 100%;
+    font-weight: 500;
+}
+
+.alert-danger {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid rgba(220, 53, 69, 0.3);
+    color: #dc3545;
+}
+
+/* Responsive */
+@media (max-width: 400px) {
+    .login {
+        padding: 15px;
+    }
+
+    .boton-regreso {
+        top: 3px; /* Aún más pegado en móviles */
+        left: 3px;
+    }
+
+    .btn-volver-home {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    .encabezado-login {
+        padding-top: 50px;
+    }
+
+    .logo-marca {
+        width: 150px;
+    }
+
+    .nombre-marca {
+        font-size: 2em;
+    }
+
+    .eslogan-marca {
+        font-size: 1em;
+    }
+
+    .boton-login {
+        width: 90%;
+        padding: 12px;
+    }
+}
+
+/* Animaciones de carga */
+@keyframes pulse {
+    0% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.5;
+    }
+
+    100% {
+        opacity: 1;
+    }
+}
+
+.boton-login:disabled span {
+    animation: pulse 1.5s ease-in-out infinite;
+}
+
+
+/* Alertas flotantes */
+.alerta-flotante {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.5s ease, slideOutRight 0.5s ease 4.5s forwards;
+}
+
+.alerta-exito {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border-left: 5px solid #2E7D32;
+}
+
+.alerta-error {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border-left: 5px solid #c62828;
+}
+
+.alerta-contenido {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    color: white;
+    position: relative;
+}
+
+.alerta-icono {
+    font-size: 20px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.alerta-mensaje {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.alerta-cerrar {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
+}
+
+    .alerta-cerrar:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Responsive para alertas */
+@media (max-width: 768px) {
+    .alerta-flotante {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+    }
+}
+
+/* Estados de carga */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

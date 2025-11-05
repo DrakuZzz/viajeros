@@ -1,0 +1,198 @@
+﻿@page "/buscar"
+@using Viajeros.Services
+@using Viajeros.Models
+@inject ApiService ApiService
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+<link rel="stylesheet" href="css/Home.css">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<div class="app-container">
+
+    <!-- Mostrar término de búsqueda -->
+    <section class="resultados-busqueda">
+        <h2 class="titulo-seccion">
+            @if (cargando)
+            {
+                <text>Buscando...</text>
+            }
+            else if (!string.IsNullOrEmpty(terminoBusqueda))
+            {
+                <text>Resultados para: "@terminoBusqueda"</text>
+            }
+            else
+            {
+                <text>Búsqueda</text>
+            }
+        </h2>
+
+        <p class="contador-resultados">
+            @if (!cargando && lugares != null)
+            {
+                <text>@lugares.Count resultado(s) encontrado(s)</text>
+            }
+        </p>
+    </section>
+
+    <div class="contenedor-favoritos">
+        <div class="seccion-favoritos">
+            @if (!string.IsNullOrEmpty(mensajeError))
+            {
+                <div class="mensaje-error">
+                    @mensajeError
+                </div>
+            }
+
+            @if (cargando)
+            {
+                <div class="cargando">Buscando lugares...</div>
+            }
+            else if (lugares == null || !lugares.Any())
+            {
+                <div class="sin-resultados">
+                    <i class="fas fa-search" style="font-size: 3rem; color: #ccc; margin-bottom: 1rem;"></i>
+                    <p>No se encontraron lugares para "@terminoBusqueda"</p>
+                    <p class="sugerencia">Intenta con otras palabras clave</p>
+                </div>
+            }
+            else
+            {
+                <div class="lista-favoritos">
+                    @foreach (var lugar in lugares)
+                    {
+                        <div class="item-favorito" @onclick="() => NavigateToDescription(lugar.Id_lugar)">
+                            <div class="contenedor-imagen">
+                                @if (!string.IsNullOrEmpty(lugar.UltimoComentario?.Foto))
+                                {
+                                    <img src="@lugar.UltimoComentario.Foto" alt="@lugar.NombreLugar" class="imagen-lugar">
+                                }
+                                else
+                                {
+                                    <div class="imagen-placeholder">
+                                        <i class="fas fa-image"></i>
+                                    </div>
+                                }
+                            </div>
+                            <div class="info-lugar">
+                                <h3 class="nombre-lugar">@lugar.NombreLugar</h3>
+                                <div class="calificacion">
+                                    <span class="estrellas">@RenderEstrellas(lugar.CalificacionPromedio)</span>
+                                    <span class="numero-calificacion">@lugar.CalificacionPromedio.ToString("0.0")</span>
+                                </div>
+                                <p class="comentario">
+                                    @if (!string.IsNullOrEmpty(lugar.UltimoComentario?.comentario))
+                                    {
+                                        @(lugar.UltimoComentario.comentario.Length > 100 ?
+                                            lugar.UltimoComentario.comentario.Substring(0, 100) + "..." :
+                                            lugar.UltimoComentario.comentario)
+                                    }
+                                    else
+                                    {
+                                        <text>Sin comentarios aún</text>
+                                    }
+                                </p>
+                            </div>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="seccion-recomendar">
+        <a href="/recomendar" class="enlace-recomendar"> ¿Quieres recomendar un lugar? </a>
+    </div>
+</div>
+
+
+@code {
+    private List<LugarConUltimoComentarioYEstrellasDto> lugares = new();
+    private bool cargando = true;
+    private string terminoBusqueda = string.Empty;
+    private string mensajeError = string.Empty;
+    private string baseUrl = string.Empty;
+
+    [SupplyParameterFromQuery]
+    private string q { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ProcesarBusqueda();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await ProcesarBusqueda();
+    }
+
+    private async Task ProcesarBusqueda()
+    {
+        terminoBusqueda = q ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(terminoBusqueda))
+        {
+            lugares = new List<LugarConUltimoComentarioYEstrellasDto>();
+            cargando = false;
+            mensajeError = "Ingresa un término de búsqueda";
+            return;
+        }
+
+        await RealizarBusqueda();
+    }
+
+    private async Task RealizarBusqueda()
+    {
+        try
+        {
+            cargando = true;
+            mensajeError = string.Empty;
+            StateHasChanged();
+
+            // Primero obtenemos una conexión funcional
+            var (success, workingUrl) = await ApiService.ProbarConexion();
+
+            if (success)
+            {
+                baseUrl = workingUrl;
+                lugares = await ApiService.BuscarLugares(baseUrl, terminoBusqueda);
+            }
+            else
+            {
+                mensajeError = "❌ No se pudo establecer conexión con el servidor.";
+                lugares = new List<LugarConUltimoComentarioYEstrellasDto>();
+            }
+        }
+        catch (Exception ex)
+        {
+            mensajeError = $"Error al buscar: {ex.Message}";
+            lugares = new List<LugarConUltimoComentarioYEstrellasDto>();
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void NavigateToDescription(int idLugar)
+    {
+        Navigation.NavigateTo($"/descripcion/{idLugar}");
+    }
+
+    private string RenderEstrellas(decimal calificacion)
+    {
+        int estrellasLlenas = (int)Math.Round(calificacion);
+        string resultado = "";
+
+        for (int i = 0; i < 5; i++)
+        {
+            if (i < estrellasLlenas)
+                resultado += "★";
+            else
+                resultado += "☆";
+        }
+
+        return resultado;
+    }
+}

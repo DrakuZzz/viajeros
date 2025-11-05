@@ -1,0 +1,293 @@
+﻿/* Evita el desplazamiento horizontal */
+html, body {
+    overflow-x: hidden; /* Bloquea el scroll lateral */
+    overflow-y: auto; /* Permite desplazamiento vertical */
+}
+
+/* Variables de color para mantener consistencia */
+:root {
+    --color-danger: #FF0101;
+    --color-text-light: #FFFFFF;
+    --color-warning: #FFA600;
+    --color-text-dark: #3E4A59;
+    --color-text-placeholder: #6B8BA6;
+    --header-blue: #82D7FE;
+    --shadow-light: rgba(0, 0, 0, 0.15);
+    --dark-text: #333;
+}
+
+/* Estilos generales para la página de favoritos */
+body {
+    background-color: #e3f2fd;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+}
+
+.contenedor-favoritos {
+    padding: 16px;
+}
+
+.seccion-favoritos {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+/* Título "FAVORITOS" */
+.titulo-seccion {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: #2c3e50;
+    margin-top: 0;
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+/* Lista de ítems */
+.lista-favoritos {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Estilo de cada tarjeta de favorito */
+.item-favorito {
+    position: relative; /* importante para colocar el corazón en la esquina */
+    background-color: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    transition: transform 0.3s, box-shadow 0.3s;
+}
+
+    .item-favorito:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+    }
+
+/* Contenedor de la imagen */
+.contenedor-imagen {
+    width: 120px;
+    height: 120px;
+    margin-right: 16px;
+    border-radius: 8px;
+    overflow: hidden;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+/* Imagen */
+.imagen-lugar {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* ✅ PLACEHOLDER DE IMAGEN - IGUAL QUE EN HOME */
+.imagen-placeholder {
+    width: 100%;
+    height: 100%;
+    background-color: #f5f5f5;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ccc;
+    font-size: 2rem;
+}
+
+/* Información del lugar */
+.info-lugar {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+/* Nombre del lugar */
+.nombre-lugar {
+    font-size: 1.3rem;
+    font-weight: bold;
+    color: var(--color-text-dark);
+    margin: 0;
+}
+
+/* Calificación */
+.calificacion {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.estrellas {
+    color: var(--color-warning);
+    font-size: 1.1rem;
+}
+
+.numero-calificacion {
+    font-size: 0.9rem;
+    color: var(--color-text-placeholder);
+    font-weight: 500;
+}
+
+/* Comentario */
+.comentario {
+    font-size: 1rem;
+    color: var(--color-text-dark);
+    margin: 0;
+    line-height: 1.4;
+    opacity: 0.8;
+}
+
+/* ============================================================
+   BOTÓN FAVORITOS - EXACTAMENTE IGUAL QUE EN DESCRIPCIÓN PERO EN ROJO
+   ============================================================ */
+.boton-favoritos {
+    background: transparent;
+    border: 3px solid var(--color-danger);
+    color: var(--color-danger);
+    padding: 12px 20px;
+    border-radius: 30px;
+    font-size: 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: auto;
+    min-width: 50px;
+    height: 50px;
+    position: absolute;
+    top: 16px;
+    right: 16px;
+}
+
+    .boton-favoritos.favorito-activo {
+        background: var(--color-danger);
+        color: var(--color-text-light);
+    }
+
+    .boton-favoritos:hover {
+        opacity: 0.9;
+        transform: translateY(-2px);
+    }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 768px) {
+    .contenedor-favoritos {
+        padding: 12px;
+    }
+
+    .item-favorito {
+        flex-direction: column;
+        text-align: center;
+        padding: 12px;
+    }
+
+    .contenedor-imagen {
+        width: 100%;
+        height: 200px;
+        margin-right: 0;
+        margin-bottom: 12px;
+    }
+
+    .info-lugar {
+        width: 100%;
+        align-items: center;
+    }
+
+    .titulo-seccion {
+        font-size: 1.5rem;
+    }
+
+    .boton-favoritos {
+        position: relative;
+        top: auto;
+        right: auto;
+        align-self: flex-end;
+        margin-top: 10px;
+        width: 45px;
+        height: 45px;
+        font-size: 1.3rem;
+    }
+}
+
+@media (max-width: 480px) {
+    .contenedor-favoritos {
+        padding: 8px;
+    }
+
+    .titulo-seccion {
+        font-size: 1.3rem;
+        margin-bottom: 16px;
+    }
+
+    .contenedor-imagen {
+        height: 150px;
+    }
+
+    .nombre-lugar {
+        font-size: 1.1rem;
+    }
+
+    .comentario {
+        font-size: 0.9rem;
+    }
+
+    .boton-favoritos {
+        width: 40px;
+        height: 40px;
+        font-size: 1.2rem;
+    }
+
+    /* ✅ PLACEHOLDER RESPONSIVE */
+    .imagen-placeholder {
+        font-size: 1.5rem;
+    }
+}
+
+.boton-explorar {
+    display: inline-block;
+    background-color: var(--header-blue);
+    color: var(--dark-text);
+    font-weight: 600;
+    padding: clamp(10px, 2vw, 14px) clamp(20px, 3vw, 28px);
+    border-radius: 25px;
+    text-decoration: none;
+    font-size: clamp(0.9rem, 2vw, 1rem);
+    box-shadow: 0 4px 6px var(--shadow-light);
+    transition: background-color 0.3s, transform 0.3s;
+    cursor: pointer;
+    margin-top: 12px;
+    text-align: center;
+    border: none;
+    outline: none;
+}
+
+    .boton-explorar:hover {
+        background-color: #6BB9F4;
+        transform: translateY(-2px);
+    }
+
+@media (max-width: 768px) {
+    .boton-explorar {
+        width: 100%;
+        font-size: 0.95rem;
+        padding: 10px 0;
+    }
+}
+
+@media (max-width: 480px) {
+    .boton-explorar {
+        font-size: 0.9rem;
+        padding: 8px 0;
+    }
+}

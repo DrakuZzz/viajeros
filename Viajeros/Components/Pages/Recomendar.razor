@@ -1,0 +1,192 @@
+﻿@page "/recomendar"
+@using Viajeros.Models
+@using Viajeros.Services
+@inject ApiService ApiService
+
+<link rel="stylesheet" href="css/Recomendar.css">
+
+<div class="contenedor-recomendar">
+    <h1 class="titulo-principal">Recomendar</h1>
+
+    <div class="seccion-recomendar">
+        <div class="grupo-datos">
+            <h3 class="subtitulo">Datos del Lugar</h3>
+
+            <div class="grupo-formulario">
+                <label for="nombre-lugar" class="etiqueta">Nombre del lugar</label>
+                <input type="text" id="nombre-lugar" class="campo-texto" placeholder="Ingresa el nombre del lugar" @bind="nombreLugar" @bind:event="oninput">
+            </div>
+
+            <div class="grupo-formulario">
+                <label for="descripcion" class="etiqueta">Descripción</label>
+                <textarea id="descripcion" class="campo-textarea" placeholder="Describe el lugar..." rows="4" @bind="descripcion" @bind:event="oninput"></textarea>
+            </div>
+        </div>
+
+        <div class="grupo-ubicacion">
+            <h3 class="subtitulo">Ubicación</h3>
+
+            <div class="grupo-formulario">
+                <label for="pais" class="etiqueta">País</label>
+                <input type="text" id="pais" class="campo-texto" placeholder="Ingresa el país" @bind="pais" @bind:event="oninput">
+            </div>
+
+            <div class="grupo-formulario">
+                <label for="estado" class="etiqueta">Estado</label>
+                <input type="text" id="estado" class="campo-texto" placeholder="Ingresa el estado" @bind="estado" @bind:event="oninput">
+            </div>
+
+            <div class="grupo-formulario">
+                <label for="ciudad" class="etiqueta">Ciudad</label>
+                <input type="text" id="ciudad" class="campo-texto" placeholder="Ingresa la ciudad" @bind="ciudad" @bind:event="oninput">
+            </div>
+
+            <div class="grupo-formulario">
+                <label for="direccion" class="etiqueta">Dirección (Opcional)</label>
+                <input type="text" id="direccion" class="campo-texto" placeholder="Ingresa la dirección" @bind="direccion" @bind:event="oninput">
+            </div>
+        </div>
+
+        <div class="grupo-botones">
+            <button class="boton-enviar" @onclick="EnviarRecomendacionAsync" disabled="@cargando">
+                @(cargando ? "Enviando..." : "Enviar")
+            </button>
+            <button class="boton-cancelar" @onclick="LimpiarFormulario" disabled="@cargando">Cancelar</button>
+        </div>
+    </div>
+</div>
+
+@if (mostrarAlerta)
+{
+    <div class="alerta-flotante @(esExito ? "alerta-exito" : "alerta-error")">
+        <div class="alerta-contenido">
+            <span class="alerta-icono">@(esExito ? "✓" : "⚠")</span>
+            <span class="alerta-mensaje">@mensajeAlerta</span>
+            <button class="alerta-cerrar" @onclick="CerrarAlerta">×</button>
+        </div>
+    </div>
+}
+
+@code {
+    private string nombreLugar = "";
+    private string descripcion = "";
+    private string pais = "";
+    private string estado = "";
+    private string ciudad = "";
+    private string direccion = "";
+    private bool cargando = false;
+    private bool mostrarAlerta = false;
+    private bool esExito = false;
+    private string mensajeAlerta = "";
+    private bool conexionVerificada = false;
+
+    // 👇 VERIFICAR CONEXIÓN AL INICIAR LA PÁGINA
+    protected override async Task OnInitializedAsync()
+    {
+        var (success, url) = await ApiService.ProbarConexion();
+        conexionVerificada = success;
+
+        if (!success)
+        {
+            MostrarAlerta("⚠️ No se pudo conectar al servidor", false);
+        }
+        else
+        {
+            System.Diagnostics.Debug.WriteLine($"✅ Conexión establecida con: {url}");
+        }
+    }
+
+    private async Task EnviarRecomendacionAsync()
+    {
+        cargando = true;
+        StateHasChanged();
+
+        try
+        {
+            // Validar campos obligatorios
+            if (string.IsNullOrWhiteSpace(nombreLugar) ||
+                string.IsNullOrWhiteSpace(descripcion) ||
+                string.IsNullOrWhiteSpace(pais) ||
+                string.IsNullOrWhiteSpace(estado) ||
+                string.IsNullOrWhiteSpace(ciudad))
+            {
+                MostrarAlerta("Por favor completa todos los campos obligatorios", false);
+                return;
+            }
+
+            // Verificar conexión si no se ha hecho
+            if (!conexionVerificada)
+            {
+                var (successConexion, url) = await ApiService.ProbarConexion();
+                if (!successConexion)
+                {
+                    MostrarAlerta("No se pudo conectar al servidor. Verifica tu conexión.", false);
+                    return;
+                }
+                conexionVerificada = true;
+            }
+
+            // Crear el objeto de recomendación
+            var recomendacion = new RecomendacionDto
+            {
+                NombreLugar = nombreLugar,
+                Descripcion = descripcion,
+                Pais = pais,
+                Estado = estado,
+                Ciudad = ciudad,
+                Direccion = direccion
+            };
+
+            // 👇 YA NO SE PASA LA URL COMO PARÁMETRO
+            var (success, message) = await ApiService.EnviarRecomendacion(recomendacion);
+
+            MostrarAlerta(message, success);
+
+            if (success)
+                LimpiarFormulario();
+        }
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"💥 Error en EnviarRecomendacionAsync: {ex.Message}");
+            MostrarAlerta($"Error: {ex.Message}", false);
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private void LimpiarFormulario()
+    {
+        nombreLugar = "";
+        descripcion = "";
+        pais = "";
+        estado = "";
+        ciudad = "";
+        direccion = "";
+        StateHasChanged();
+    }
+
+    private void MostrarAlerta(string mensaje, bool exito)
+    {
+        mensajeAlerta = mensaje;
+        esExito = exito;
+        mostrarAlerta = true;
+
+        _ = Task.Delay(5000).ContinueWith(_ =>
+        {
+            InvokeAsync(() =>
+            {
+                mostrarAlerta = false;
+                StateHasChanged();
+            });
+        });
+    }
+
+    private void CerrarAlerta()
+    {
+        mostrarAlerta = false;
+        StateHasChanged();
+    }
+}

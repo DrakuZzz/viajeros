@@ -1,0 +1,472 @@
+﻿/* ===================================================================
+   BLOQUEO DE DESPLAZAMIENTO HORIZONTAL
+   =================================================================== */
+html, body {
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+:root {
+    --color-bg: #C8E7FF;
+    --color-accent: #82D7FE;
+    --color-input-bg: #DCF0FF;
+    --color-danger: #FF0101;
+    --color-warning: #FFA600;
+    --color-text-dark: #3E4A59;
+    --color-text-light: #FFFFFF;
+    --color-text-placeholder: #6B8BA6;
+    --border-radius: 12px;
+}
+
+/* Contenedor principal */
+.profile-container {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    max-width: 450px;
+    margin: 0 auto;
+}
+
+/* Sección de viajeros */
+.viajeros-section {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.viajeros-title {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--color-text-dark);
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 25px;
+}
+
+/* Sección de perfil con imagen */
+.profile-image-section {
+    text-align: center;
+    margin-bottom: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.profile-avatar {
+    width: 150px; /* Aumentado de 100px a 150px */
+    height: 150px; /* Aumentado de 100px a 150px */
+    border-radius: 50%;
+    background-color: var(--color-accent);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin: 0 auto 20px auto; /* Aumentado el margen inferior */
+    overflow: hidden;
+    position: relative;
+}
+
+    .profile-avatar svg {
+        width: 60px; /* Aumentado de 50px a 60px */
+        height: 60px; /* Aumentado de 50px a 60px */
+        stroke: var(--color-text-light);
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Forzar que las imágenes dentro del avatar sean circulares */
+    .profile-avatar img {
+        width: 100% !important;
+        height: 100% !important;
+        object-fit: cover !important;
+        border-radius: 50% !important;
+        display: block !important;
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+
+    /* Estilos para el placeholder de carga del componente ImagenLugar */
+    .profile-avatar .imagen-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        color: var(--color-text-light);
+        background-color: var(--color-accent);
+    }
+
+        /* Spinner de carga */
+        .profile-avatar .imagen-placeholder .fa-spinner {
+            color: var(--color-text-light);
+        }
+
+.btn-change-pic {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--color-input-bg);
+    color: var(--color-text-dark);
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+}
+
+    .btn-change-pic:hover {
+        background: var(--color-accent);
+        color: var(--color-text-light);
+    }
+
+    .btn-change-pic:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+/* Estilos para el botón de eliminar imagen */
+.btn-remove-pic {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--color-danger);
+    color: var(--color-text-light);
+    border: none;
+    padding: 12px 24px;
+    border-radius: var(--border-radius);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    margin-top: 10px;
+}
+
+    .btn-remove-pic:hover {
+        opacity: 0.9;
+    }
+
+    .btn-remove-pic:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+    }
+
+/* Formulario */
+.account-form {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: var(--color-text-light);
+    border-radius: 20px;
+    padding: 25px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+/* Secciones del formulario */
+.form-section {
+    margin-bottom: 25px;
+}
+
+    .form-section:last-child {
+        margin-bottom: 0;
+    }
+
+.section-title {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--color-text-dark);
+    font-size: 1.2rem;
+    font-weight: 700;
+    margin-bottom: 20px;
+    padding-left: 10px;
+    border-left: 4px solid var(--color-accent);
+}
+
+/* Títulos de campos específicos para Mi Zona */
+.field-title {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text-dark);
+    margin-bottom: 8px;
+    display: block;
+}
+
+/* Grupos de input */
+.input-group {
+    margin-bottom: 20px;
+}
+
+    .input-group:last-child {
+        margin-bottom: 0;
+    }
+
+label {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    color: var(--color-text-dark);
+    font-size: 0.9rem;
+}
+
+/* ESTILOS PARA INPUTS DE TEXTO */
+input[type="text"] {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 10px !important;
+    background: var(--color-input-bg);
+    font-size: 1rem;
+    color: var(--color-text-dark);
+    transition: all 0.3s ease;
+    outline: none;
+    box-sizing: border-box;
+}
+
+    input[type="text"]:focus {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 1px;
+    }
+
+    input[type="text"]::placeholder {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--color-text-placeholder);
+    }
+
+/* ESTILOS PARA SELECTS - ACTUALIZADOS */
+.form-select {
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 10px !important;
+    background: var(--color-input-bg);
+    font-size: 1rem;
+    color: var(--color-text-dark);
+    transition: all 0.3s ease;
+    outline: none;
+    box-sizing: border-box;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236B8BA6' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");
+    background-position: right 16px center;
+    background-repeat: no-repeat;
+    background-size: 16px 16px;
+    padding-right: 45px;
+}
+
+    .form-select:focus {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 1px;
+    }
+
+/* ESTILOS PARA INPUTS DE BLAZOR */
+.form-input {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 100%;
+    padding: 14px 16px;
+    border: none;
+    border-radius: 10px !important;
+    background: var(--color-input-bg);
+    font-size: 1rem;
+    color: var(--color-text-dark);
+    transition: all 0.3s ease;
+    outline: none;
+    box-sizing: border-box;
+}
+
+    .form-input:focus {
+        outline: 2px solid var(--color-accent);
+        outline-offset: 1px;
+    }
+
+    .form-input::placeholder {
+        font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        color: var(--color-text-placeholder);
+    }
+
+/* Botones de acción */
+.action-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.btn {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    flex: 1;
+    padding: 14px;
+    border: none;
+    border-radius: var(--border-radius);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-align: center;
+}
+
+.btn-update {
+    background: var(--color-input-bg);
+    color: var(--color-text-dark);
+}
+
+.btn-cancel {
+    background: var(--color-danger);
+    color: var(--color-text-light);
+}
+
+    .btn-cancel:hover {
+        opacity: 0.9;
+    }
+
+/* Botón salir */
+.logout-section {
+    text-align: center;
+}
+
+.btn-logout {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    width: 100%;
+    padding: 14px;
+    border: none;
+    border-radius: var(--border-radius);
+    background: var(--color-warning);
+    color: var(--color-text-light);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-bottom: 10px;
+}
+
+    .btn-logout:hover {
+        opacity: 0.9;
+    }
+
+/* Estilos para mensajes de validación */
+.validation-message {
+    color: var(--color-danger);
+    font-size: 0.8rem;
+    margin-top: 5px;
+    display: block;
+}
+
+/* Estados de deshabilitado */
+.btn:disabled,
+.form-input:disabled,
+.form-select:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+/* Responsive */
+@media (max-width: 480px) {
+    .account-form {
+        padding: 20px;
+    }
+
+    .action-buttons {
+        flex-direction: column;
+    }
+}
+
+/* Alertas flotantes */
+.alerta-flotante {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1000;
+    min-width: 300px;
+    max-width: 500px;
+    border-radius: 12px;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+    animation: slideInRight 0.5s ease, slideOutRight 0.5s ease 4.5s forwards;
+}
+
+.alerta-exito {
+    background: linear-gradient(135deg, #4CAF50, #45a049);
+    border-left: 5px solid #2E7D32;
+}
+
+.alerta-error {
+    background: linear-gradient(135deg, #f44336, #d32f2f);
+    border-left: 5px solid #c62828;
+}
+
+.alerta-contenido {
+    display: flex;
+    align-items: center;
+    padding: 16px 20px;
+    color: white;
+    position: relative;
+}
+
+.alerta-icono {
+    font-size: 20px;
+    margin-right: 12px;
+    flex-shrink: 0;
+}
+
+.alerta-mensaje {
+    flex: 1;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 1.4;
+}
+
+.alerta-cerrar {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 20px;
+    font-weight: bold;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 10px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.3s ease;
+    flex-shrink: 0;
+}
+
+    .alerta-cerrar:hover {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    to {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+}
+
+/* Responsive para alertas */
+@media (max-width: 768px) {
+    .alerta-flotante {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+        max-width: none;
+    }
+}
+
+/* Estados de carga */
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}

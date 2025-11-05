@@ -1,0 +1,599 @@
+﻿@page "/agregaropciones"
+@inject NavigationManager Navigation
+@inject Viajeros.Services.ApiService ApiService
+@inject IJSRuntime JSRuntime
+@using Viajeros.Models
+
+<link rel="stylesheet" href="css/AddOption.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<!-- Alerta flotante -->
+@if (mostrarAlerta)
+{
+    <div class="alerta-flotante @(alertaEsExito ? "alerta-exito" : "alerta-error")">
+        <div class="alerta-contenido">
+            <span class="alerta-icono">@(alertaEsExito ? "✅" : "❌")</span>
+            <span class="alerta-mensaje">@mensajeAlerta</span>
+            <button class="alerta-cerrar" @onclick="CerrarAlerta">×</button>
+        </div>
+    </div>
+}
+
+<div class="app-container">
+    <div class="contenedor-principal">
+
+        <!-- CONTENIDO PRINCIPAL -->
+        <main class="main-content">
+            <h2 class="form-title">Añadir nuevas opciones</h2>
+            <p class="form-subtitle">Seleccione el tipo de elemento a agregar</p>
+
+            <div class="opciones-form">
+                <!-- SECCIÓN PRINCIPAL -->
+                <div class="form-section">
+                    <label for="opcionPrincipal">Tipo de Opción</label>
+                    <div class="select-wrapper">
+                        <select id="opcionPrincipal" class="custom-select-location" @onchange="ToggleUbicacionFields">
+                            <option value="">-- Seleccione un tipo --</option>
+                            <option value="transporte">Transporte 🚌</option>
+                            <option value="actividad">Actividad ⛰</option>
+                            <option value="categoria">Categoría 🏖</option>
+                            <option value="ubicacion">Ubicación 🌎</option>
+                        </select>
+                    </div>
+
+                    <!-- CAMPO GENÉRICO -->
+                    @if (mostrarCampoGenerico)
+                    {
+                        <div class="input-group-field">
+                            <label for="valorGenerico">Nombre del Elemento</label>
+                            <input type="text" id="valorGenerico" class="custom-input" @bind="valorGenerico" placeholder="@placeholderGenerico" />
+                        </div>
+                    }
+                </div>
+
+                <!-- SECCIÓN UBICACIÓN -->
+                @if (mostrarUbicacionSection)
+                {
+                    <div class="location-section">
+                        <h3 class="location-title">Detalle de Ubicación</h3>
+
+                        <div class="form-section">
+                            <label for="tipoUbicacion">Qué desea añadir</label>
+                            <div class="select-wrapper">
+                                <select id="tipoUbicacion" class="custom-select-location" @onchange="ShowUbicacionFields">
+                                    <option value="pais">País 🌍</option>
+                                    <option value="estado">Estado 🗺</option>
+                                    <option value="ciudad">Ciudad 🏙</option>
+                                </select>
+                            </div>
+
+                            <div class="ubicacion-fields-container">
+                                <!-- CAMPO PAÍS -->
+                                @if (mostrarFieldPais)
+                                {
+                                    <div class="ubicacion-field-group">
+                                        <label for="nuevoPais">Nuevo País</label>
+                                        <input type="text" id="nuevoPais" class="custom-input" @bind="nuevoPais" placeholder="Ej: Canadá" />
+                                    </div>
+                                }
+
+                                <!-- CAMPO ESTADO -->
+                                @if (mostrarFieldEstado)
+                                {
+                                    <div class="ubicacion-field-group">
+                                        <div class="field-row">
+                                            <div class="field-column">
+                                                <label for="selectPais">País</label>
+                                                <div class="select-wrapper">
+                                                    <select id="selectPais" class="custom-select-location" @onchange="OnPaisSeleccionadoEstado">
+                                                        <option value="0">Seleccione país</option>
+                                                        @foreach (var pais in paises)
+                                                        {
+                                                            <option value="@pais.id_pais">@pais.pais</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="field-row">
+                                            <div class="field-column">
+                                                <label for="nuevoEstado">Nuevo Estado</label>
+                                                <input type="text" id="nuevoEstado" class="custom-input" @bind="nuevoEstado" placeholder="Ej: Quintana Roo"
+                                                       disabled="@(idPaisSeleccionadoEstado == 0)" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+
+                                <!-- CAMPO CIUDAD -->
+                                @if (mostrarFieldCiudad)
+                                {
+                                    <div class="ubicacion-field-group">
+                                        <div class="field-row">
+                                            <div class="field-column">
+                                                <label for="selectPaisCiudad">País</label>
+                                                <div class="select-wrapper">
+                                                    <select id="selectPaisCiudad" class="custom-select-location" @onchange="OnPaisSeleccionadoCiudad">
+                                                        <option value="0">Seleccione país</option>
+                                                        @foreach (var pais in paises)
+                                                        {
+                                                            <option value="@pais.id_pais">@pais.pais</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="field-row">
+                                            <div class="field-column">
+                                                <label for="selectEstadoCiudad">Estado</label>
+                                                <div class="select-wrapper">
+                                                    <select id="selectEstadoCiudad" class="custom-select-location" @onchange="OnEstadoSeleccionadoCiudad"
+                                                            disabled="@(idPaisSeleccionadoCiudad == 0)">
+                                                        <option value="0">Seleccione estado</option>
+                                                        @foreach (var estado in estadosParaCiudad)
+                                                        {
+                                                            <option value="@estado.id_estado">@estado.estado</option>
+                                                        }
+                                                    </select>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="field-row">
+                                            <div class="field-column">
+                                                <label for="nuevaCiudad">Nueva Ciudad</label>
+                                                <input type="text" id="nuevaCiudad" class="custom-input" @bind="nuevaCiudad"
+                                                       placeholder="Ej: San Cristóbal de las Casas"
+                                                       disabled="@(idEstadoSeleccionadoCiudad == 0)" />
+                                            </div>
+                                        </div>
+                                    </div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </main>
+
+        <!-- FOOTER CON BOTONES -->
+        <footer class="form-footer">
+            <button class="btn-action btn-guardar" @onclick="GuardarOpcion" disabled="@isLoading">
+                @if (isLoading)
+                {
+                    <span>Guardando...</span>
+                }
+                else
+                {
+                    <span>Guardar Opción</span>
+                }
+            </button>
+            <button class="btn-action btn-cancelar" @onclick="Cancelar" disabled="@isLoading">Cancelar</button>
+        </footer>
+    </div>
+</div>
+
+@code {
+    // Variables para control de visibilidad
+    private bool mostrarCampoGenerico = false;
+    private bool mostrarUbicacionSection = false;
+    private bool mostrarFieldPais = true;
+    private bool mostrarFieldEstado = false;
+    private bool mostrarFieldCiudad = false;
+    private bool isLoading = false;
+
+    // Variables para campos genéricos
+    private string valorGenerico = "";
+    private string tipoOpcionSeleccionada = "";
+    private string placeholderGenerico = "";
+
+    // Variables para ubicación
+    private string nuevoPais = "";
+    private string nuevoEstado = "";
+    private string nuevaCiudad = "";
+    private string tipoUbicacionSeleccionada = "pais";
+
+    // Variables para IDs de ubicaciones
+    private int idPaisSeleccionadoEstado = 0;
+    private int idPaisSeleccionadoCiudad = 0;
+    private int idEstadoSeleccionadoCiudad = 0;
+
+    // Listas para datos cargados
+    private List<PaisDto> paises = new List<PaisDto>();
+    private List<EstadoDto> estadosParaCiudad = new List<EstadoDto>();
+
+    // Variables para alerta
+    private bool mostrarAlerta = false;
+    private bool alertaEsExito = false;
+    private string mensajeAlerta = "";
+
+    private string urlFuncional = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        // Probar conexión y cargar datos
+        var conexionResult = await ApiService.ProbarConexion();
+        if (conexionResult.success)
+        {
+            urlFuncional = conexionResult.workingUrl;
+            await CargarPaises();
+        }
+        else
+        {
+            MostrarAlerta("❌ No se pudo conectar con el servidor", false);
+        }
+    }
+
+    private async Task CargarPaises()
+    {
+        try
+        {
+            paises = await ApiService.ObtenerPaises(urlFuncional);
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al cargar países: {ex.Message}", false);
+        }
+    }
+
+    private async Task CargarEstadosParaCiudad(int idPais)
+    {
+        try
+        {
+            estadosParaCiudad = await ApiService.ObtenerEstadosPorPais(urlFuncional, idPais);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al cargar estados: {ex.Message}", false);
+        }
+    }
+
+    private void ToggleUbicacionFields(ChangeEventArgs e)
+    {
+        tipoOpcionSeleccionada = e.Value?.ToString() ?? "";
+
+        mostrarCampoGenerico = false;
+        mostrarUbicacionSection = false;
+
+        if (tipoOpcionSeleccionada == "ubicacion")
+        {
+            mostrarUbicacionSection = true;
+            tipoUbicacionSeleccionada = "pais";
+            ShowUbicacionFields();
+        }
+        else if (!string.IsNullOrEmpty(tipoOpcionSeleccionada))
+        {
+            mostrarCampoGenerico = true;
+            UpdatePlaceholder();
+        }
+
+        StateHasChanged();
+    }
+
+    private void ShowUbicacionFields(ChangeEventArgs e = null)
+    {
+        if (e != null)
+        {
+            tipoUbicacionSeleccionada = e.Value?.ToString() ?? "pais";
+        }
+
+        mostrarFieldPais = tipoUbicacionSeleccionada == "pais";
+        mostrarFieldEstado = tipoUbicacionSeleccionada == "estado";
+        mostrarFieldCiudad = tipoUbicacionSeleccionada == "ciudad";
+
+        // Resetear campos cuando cambia el tipo
+        if (tipoUbicacionSeleccionada == "pais")
+        {
+            nuevoPais = "";
+        }
+        else if (tipoUbicacionSeleccionada == "estado")
+        {
+            idPaisSeleccionadoEstado = 0;
+            nuevoEstado = "";
+        }
+        else if (tipoUbicacionSeleccionada == "ciudad")
+        {
+            idPaisSeleccionadoCiudad = 0;
+            idEstadoSeleccionadoCiudad = 0;
+            nuevaCiudad = "";
+            estadosParaCiudad.Clear();
+        }
+
+        StateHasChanged();
+    }
+
+    private async Task OnPaisSeleccionadoEstado(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int idPais))
+        {
+            idPaisSeleccionadoEstado = idPais;
+        }
+    }
+
+    private async Task OnPaisSeleccionadoCiudad(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int idPais) && idPais > 0)
+        {
+            idPaisSeleccionadoCiudad = idPais;
+            idEstadoSeleccionadoCiudad = 0;
+            nuevaCiudad = "";
+            await CargarEstadosParaCiudad(idPais);
+        }
+    }
+
+    private void OnEstadoSeleccionadoCiudad(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out int idEstado))
+        {
+            idEstadoSeleccionadoCiudad = idEstado;
+        }
+    }
+
+    private void UpdatePlaceholder()
+    {
+        placeholderGenerico = tipoOpcionSeleccionada switch
+        {
+            "transporte" => "Ej: Avión, Bus, Lancha",
+            "actividad" => "Ej: Senderismo, Buceo, Catas de vino",
+            "categoria" => "Ej: Turismo de Aventura, Histórico",
+            _ => "Ej: Nombre del elemento"
+        };
+    }
+
+    private async Task GuardarOpcion()
+    {
+        if (string.IsNullOrEmpty(tipoOpcionSeleccionada))
+        {
+            MostrarAlerta("❌ Por favor seleccione un tipo de opción", false);
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            if (tipoOpcionSeleccionada == "ubicacion")
+            {
+                await GuardarUbicacion();
+            }
+            else
+            {
+                await GuardarElementoGenerico();
+            }
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task GuardarUbicacion()
+    {
+        switch (tipoUbicacionSeleccionada)
+        {
+            case "pais":
+                if (string.IsNullOrWhiteSpace(nuevoPais))
+                {
+                    MostrarAlerta("❌ El nombre del país es requerido", false);
+                    return;
+                }
+                await CrearPais();
+                break;
+
+            case "estado":
+                if (idPaisSeleccionadoEstado == 0 || string.IsNullOrWhiteSpace(nuevoEstado))
+                {
+                    MostrarAlerta("❌ País y estado son requeridos", false);
+                    return;
+                }
+                await CrearEstado();
+                break;
+
+            case "ciudad":
+                if (idPaisSeleccionadoCiudad == 0 || idEstadoSeleccionadoCiudad == 0 || string.IsNullOrWhiteSpace(nuevaCiudad))
+                {
+                    MostrarAlerta("❌ País, estado y ciudad son requeridos", false);
+                    return;
+                }
+                await CrearCiudad();
+                break;
+        }
+    }
+
+    private async Task CrearPais()
+    {
+        try
+        {
+            var paisDto = new PaisCreateDto { pais = nuevoPais };
+            var resultado = await ApiService.CrearPais(paisDto, urlFuncional);
+
+            if (resultado.success)
+            {
+                MostrarAlerta("✅ País creado exitosamente", true);
+                await LimpiarCamposSinCerrarSecciones();
+                await CargarPaises(); // Recargar la lista de países
+            }
+            else
+            {
+                MostrarAlerta(resultado.message, false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"❌ Error al crear país: {ex.Message}", false);
+        }
+    }
+
+    private async Task CrearEstado()
+    {
+        try
+        {
+            var estadoDto = new EstadoCreateDto
+            {
+                estado = nuevoEstado,
+                id_pais = idPaisSeleccionadoEstado
+            };
+            var resultado = await ApiService.CrearEstado(estadoDto, urlFuncional);
+
+            if (resultado.success)
+            {
+                MostrarAlerta("✅ Estado creado exitosamente", true);
+                await LimpiarCamposSinCerrarSecciones();
+            }
+            else
+            {
+                MostrarAlerta(resultado.message, false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"❌ Error al crear estado: {ex.Message}", false);
+        }
+    }
+
+    private async Task CrearCiudad()
+    {
+        try
+        {
+            var ciudadDto = new CiudadCreateDto
+            {
+                ciudad = nuevaCiudad,
+                id_estado = idEstadoSeleccionadoCiudad,
+                id_pais = idPaisSeleccionadoCiudad
+            };
+            var resultado = await ApiService.CrearCiudad(ciudadDto, urlFuncional);
+
+            if (resultado.success)
+            {
+                MostrarAlerta("✅ Ciudad creada exitosamente", true);
+                await LimpiarCamposSinCerrarSecciones();
+            }
+            else
+            {
+                MostrarAlerta(resultado.message, false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"❌ Error al crear ciudad: {ex.Message}", false);
+        }
+    }
+
+    private async Task GuardarElementoGenerico()
+    {
+        if (string.IsNullOrWhiteSpace(valorGenerico))
+        {
+            MostrarAlerta("❌ El nombre del elemento es requerido", false);
+            return;
+        }
+
+        try
+        {
+            var resultado = await (tipoOpcionSeleccionada switch
+            {
+                "transporte" => ApiService.CrearTransporte(new TransporteCreateDto { transporte = valorGenerico }, urlFuncional),
+                "actividad" => ApiService.CrearActividad(new ActividadCreateDto { actividad = valorGenerico }, urlFuncional),
+                "categoria" => ApiService.CrearCategoria(new CategoriaCreateDto { categoria = valorGenerico }, urlFuncional),
+                _ => Task.FromResult((success: false, message: "Tipo de opción no válido"))
+            });
+
+            if (resultado.success)
+            {
+                MostrarAlerta($"✅ {tipoOpcionSeleccionada.ToUpper()} creado exitosamente", true);
+                await LimpiarCamposSinCerrarSecciones();
+            }
+            else
+            {
+                MostrarAlerta(resultado.message, false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"❌ Error al crear {tipoOpcionSeleccionada}: {ex.Message}", false);
+        }
+    }
+
+    // 👇 NUEVO MÉTODO: Solo limpia los campos sin cerrar secciones
+    private async Task LimpiarCamposSinCerrarSecciones()
+    {
+        // Limpiar campos genéricos
+        valorGenerico = "";
+
+        // Limpiar campos de ubicación según lo que esté visible+++
+        if (mostrarUbicacionSection)
+        {
+            // Solo limpia los campos de la sección actual sin cambiar la visibilidad
+            if (mostrarFieldPais)
+            {
+                nuevoPais = "";
+            }
+            else if (mostrarFieldEstado)
+            {
+                nuevoEstado = "";
+                // Mantener el país seleccionado pero limpiar el estado
+                // idPaisSeleccionadoEstado se mantiene
+            }
+            else if (mostrarFieldCiudad)
+            {
+                nuevaCiudad = "";
+                // Mantener las selecciones pero limpiar la ciudad
+                // idPaisSeleccionadoCiudad e idEstadoSeleccionadoCiudad se mantienen
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    // 👇 MÉTODO ORIGINAL (para cancelar o limpiar completo)
+    private async Task LimpiarFormulario()
+    {
+        valorGenerico = "";
+        nuevoPais = "";
+        nuevoEstado = "";
+        nuevaCiudad = "";
+        idPaisSeleccionadoEstado = 0;
+        idPaisSeleccionadoCiudad = 0;
+        idEstadoSeleccionadoCiudad = 0;
+        tipoOpcionSeleccionada = "";
+        tipoUbicacionSeleccionada = "pais";
+
+        mostrarCampoGenerico = false;
+        mostrarUbicacionSection = false;
+        mostrarFieldPais = true;
+        mostrarFieldEstado = false;
+        mostrarFieldCiudad = false;
+
+        estadosParaCiudad.Clear();
+
+        StateHasChanged();
+    }
+
+    // 👇 MÉTODO PARA MOSTRAR ALERTA FLOTANTE (ya funciona con tu CSS)
+    private async void MostrarAlerta(string mensaje, bool esExito)
+    {
+        mensajeAlerta = mensaje;
+        alertaEsExito = esExito;
+        mostrarAlerta = true;
+        StateHasChanged();
+
+        await Task.Delay(esExito ? 5000 : 8000);
+        if (mostrarAlerta)
+        {
+            CerrarAlerta();
+        }
+    }
+
+    // 👇 MÉTODO PARA CERRAR ALERTA
+    private void CerrarAlerta()
+    {
+        mostrarAlerta = false;
+        StateHasChanged();
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/home");
+    }
+}

@@ -1,0 +1,655 @@
+﻿@page "/editar/{IdLugar}"
+@inject NavigationManager Navigation
+@inject Viajeros.Services.ApiService ApiService
+@inject Viajeros.Services.ImageUploadService ImageUploadService
+@using Microsoft.AspNetCore.Components.Forms
+@using Viajeros.Models
+
+<link rel="stylesheet" href="css/Agregar.css" />
+
+<!-- Alerta flotante -->
+@if (mostrarAlerta)
+{
+    <div class="alerta-flotante @(alertaEsExito ? "alerta-exito" : "alerta-error")">
+        <div class="alerta-contenido">
+            <span class="alerta-icono">@(alertaEsExito ? "✅" : "❌")</span>
+            <span class="alerta-mensaje">@mensajeAlerta</span>
+            <button class="alerta-cerrar" @onclick="CerrarAlerta">×</button>
+        </div>
+    </div>
+}
+
+<div class="agregar-container">
+    <div class="contenedor-principal">
+        <div class="header">
+            <h1>Editar lugar</h1>
+            <p>Modifique la información del destino</p>
+        </div>
+
+        @if (cargando)
+        {
+            <div class="cargando">Cargando información del lugar...</div>
+        }
+        else if (lugar == null)
+        {
+            <div class="error">No se pudo cargar la información del lugar</div>
+        }
+        else
+        {
+            <div class="form-section">
+                <h2>Nombre del lugar</h2>
+                <input class="form-input" @bind="nombreLugar" placeholder="Ingrese el nombre del lugar" />
+
+                <h3>Descripción</h3>
+                <textarea class="form-textarea large-textarea" @bind="descripcion" placeholder="Ingrese la descripción"></textarea>
+
+                <div class="row-section">
+                    <div class="category-section">
+                        <label>Categoría</label>
+                        <select class="form-select" @bind="idCategoriaSeleccionada">
+                            <option value="0">Seleccione categoría</option>
+                            @foreach (var categoria in categorias)
+                            {
+                                <option value="@categoria.id_categoria">@categoria.categoria</option>
+                            }
+                        </select>
+                    </div>
+
+                    <!-- SECCIÓN DE IMAGEN ACTUALIZADA -->
+                    <div class="image-section">
+                        <label>Imagen del lugar</label>
+
+                        <!-- Mostrar imagen actual si existe -->
+                        @if (!string.IsNullOrEmpty(imagenActual) && !mostrarSubidaImagen)
+                        {
+                            <div class="imagen-actual-container">
+                                <div class="imagen-actual-info">
+                                    <span class="imagen-actual-text">Imagen actual:</span>
+                                    <span class="imagen-actual-nombre">@ObtenerNombreArchivo(imagenActual)</span>
+                                </div>
+                                <button class="btn-cambiar-imagen" @onclick="MostrarSubidaImagen" type="button">
+                                    📷 Cambiar imagen
+                                </button>
+                            </div>
+                        }
+
+                        <!-- Contenedor para subir nueva imagen -->
+                        @if (mostrarSubidaImagen || string.IsNullOrEmpty(imagenActual))
+                        {
+                            <div class="image-upload-container">
+                                <InputFile OnChange="OnFileSelected" accept="image/*" class="hidden-file-input" />
+
+                                @if (subiendoImagen)
+                                {
+                                    <div class="upload-loading">
+                                        <div class="loading-spinner"></div>
+                                        <span class="upload-text">Subiendo imagen...</span>
+                                    </div>
+                                }
+                                else if (!string.IsNullOrEmpty(nuevaImagenUrl))
+                                {
+                                    <div class="image-upload-content">
+                                        <div class="upload-icon">✅</div>
+                                        <div class="upload-text">Nueva imagen lista</div>
+                                        <div class="file-name">@ObtenerNombreArchivo(nuevaImagenUrl)</div>
+                                        <button class="btn-remove-small" @onclick="EliminarNuevaImagen" type="button">
+                                            🗑️ Eliminar
+                                        </button>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <div class="image-upload-content">
+                                        <div class="upload-icon">📷</div>
+                                        <div class="upload-text">Haz clic para subir nueva imagen</div>
+                                        <div class="file-name">No se ha seleccionado archivo</div>
+                                    </div>
+                                }
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <!-- Sección de Transporte y Actividades -->
+                <div class="services-section">
+                    <h3>Transporte y actividades</h3>
+                    <div class="services-grid">
+                        <div class="service-option" @onclick="ToggleTransporte">
+                            <span>Transporte (@transportesSeleccionados.Count seleccionados)</span>
+                            <span class="dropdown-icon">@(mostrarTransporte ? "▲" : "▼")</span>
+                        </div>
+
+                        @if (mostrarTransporte)
+                        {
+                            <div class="transport-options">
+                                <div class="options-grid">
+                                    @foreach (var transporte in transportes)
+                                    {
+                                        <label class="option-checkbox">
+                                            <input type="checkbox"
+                                                   checked="@transportesSeleccionados.Contains(transporte.Id_transporte)"
+                                                   @onchange="@(e => ToggleTransporteSeleccionado(transporte.Id_transporte, (bool)e.Value))" />
+                                            <span>@transporte.Transporte</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        }
+
+                        <div class="service-option" @onclick="ToggleActividades">
+                            <span>Actividades (@actividadesSeleccionadas.Count seleccionadas)</span>
+                            <span class="dropdown-icon">@(mostrarActividades ? "▲" : "▼")</span>
+                        </div>
+
+                        @if (mostrarActividades)
+                        {
+                            <div class="transport-options">
+                                <div class="options-grid">
+                                    @foreach (var actividad in actividades)
+                                    {
+                                        <label class="option-checkbox">
+                                            <input type="checkbox"
+                                                   checked="@actividadesSeleccionadas.Contains(actividad.Id_actividad)"
+                                                   @onchange="@(e => ToggleActividadSeleccionada(actividad.Id_actividad, (bool)e.Value))" />
+                                            <span>@actividad.Actividad</span>
+                                        </label>
+                                    }
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                <hr class="divider" />
+
+                <!-- Sección de Ubicación -->
+                <div class="location-section">
+                    <h3>Ubicación</h3>
+                    <div class="location-grid">
+                        <div class="location-field">
+                            <label>País</label>
+                            <select class="form-select" @bind="idPaisSeleccionado" @bind:after="OnPaisCambiado">
+                                <option value="0">Seleccione país</option>
+                                @foreach (var pais in paises)
+                                {
+                                    <option value="@pais.id_pais">@pais.pais</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="location-field">
+                            <label>Estado</label>
+                            <select class="form-select" @bind="idEstadoSeleccionado" @bind:after="OnEstadoCambiado" disabled="@(idPaisSeleccionado == 0)">
+                                <option value="0">Seleccione estado</option>
+                                @foreach (var estado in estados)
+                                {
+                                    <option value="@estado.id_estado">@estado.estado</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="location-field">
+                            <label>Ciudad</label>
+                            <select class="form-select" @bind="idCiudadSeleccionada" disabled="@(idEstadoSeleccionado == 0)">
+                                <option value="0">Seleccione ciudad</option>
+                                @foreach (var ciudad in ciudades)
+                                {
+                                    <option value="@ciudad.id_ciudad">@ciudad.ciudad</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="location-field">
+                            <label>Ubicación específica</label>
+                            <input class="form-input" @bind="direccion" placeholder="Ingrese la ubicación específica" />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Prioridad -->
+                <div class="priority-section">
+                    <h3>Prioridad</h3>
+                    <select class="form-select" @bind="prioridad">
+                        <option value="2">Normal</option>
+                        <option value="1">Alta</option>
+                    </select>
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="action-buttons">
+                    <button class="btn-agregar" @onclick="ActualizarLugar" disabled="@isLoading">
+                        @if (isLoading)
+                        {
+                            <span>Actualizando...</span>
+                        }
+                        else
+                        {
+                            <span>Actualizar Lugar</span>
+                        }
+                    </button>
+                    <button class="btn-cancelar" @onclick="Cancelar" disabled="@isLoading">Cancelar</button>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    [Parameter] public string IdLugar { get; set; }
+
+    private LugarCompletoDto lugar;
+    private bool cargando = true;
+    private string nombreLugar = "";
+    private string descripcion = "";
+    private string imagenActual = "";
+    private string nuevaImagenUrl = "";
+    private string direccion = "";
+    private string prioridad = "2";
+    private bool mostrarTransporte = false;
+    private bool mostrarActividades = false;
+    private bool isLoading = false;
+    private bool subiendoImagen = false;
+    private bool mostrarSubidaImagen = false;
+
+    // Variables para la alerta flotante
+    private bool mostrarAlerta = false;
+    private bool alertaEsExito = false;
+    private string mensajeAlerta = "";
+
+    private int idCategoriaSeleccionada = 0;
+    private int idPaisSeleccionado = 0;
+    private int idEstadoSeleccionado = 0;
+    private int idCiudadSeleccionada = 0;
+
+    private List<CategoriaDto> categorias = new List<CategoriaDto>();
+    private List<TransporteDto> transportes = new List<TransporteDto>();
+    private List<ActividadDto> actividades = new List<ActividadDto>();
+    private List<PaisDto> paises = new List<PaisDto>();
+    private List<EstadoDto> estados = new List<EstadoDto>();
+    private List<CiudadDto> ciudades = new List<CiudadDto>();
+
+    private List<int> transportesSeleccionados = new List<int>();
+    private List<int> actividadesSeleccionadas = new List<int>();
+
+    private string urlFuncional = "";
+    private IBrowserFile? archivoSeleccionado;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var (success, workingUrl) = await ApiService.ProbarConexion();
+        if (success)
+        {
+            urlFuncional = workingUrl;
+            await CargarDatosIniciales();
+
+            if (!string.IsNullOrEmpty(IdLugar) && int.TryParse(IdLugar, out int idLugar))
+            {
+                await CargarLugar(idLugar);
+            }
+            else
+            {
+                cargando = false;
+                MostrarAlerta("ID de lugar inválido", false);
+            }
+        }
+        else
+        {
+            cargando = false;
+            MostrarAlerta("❌ No se pudo conectar con el servidor", false);
+        }
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        if (!string.IsNullOrEmpty(IdLugar) && int.TryParse(IdLugar, out int idLugar) && lugar?.Id_lugar != idLugar)
+        {
+            await CargarLugar(idLugar);
+        }
+    }
+
+    private async Task CargarDatosIniciales()
+    {
+        try
+        {
+            categorias = await ApiService.ObtenerCategorias(urlFuncional);
+            transportes = await ApiService.ObtenerTransportes(urlFuncional);
+            actividades = await ApiService.ObtenerActividades(urlFuncional);
+            paises = await ApiService.ObtenerPaises(urlFuncional);
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al cargar datos: {ex.Message}", false);
+        }
+    }
+
+    private async Task CargarLugar(int idLugar)
+    {
+        cargando = true;
+        StateHasChanged();
+
+        try
+        {
+            lugar = await ApiService.ObtenerLugarPorId(urlFuncional, idLugar);
+
+            if (lugar != null)
+            {
+                // Cargar datos del lugar en los campos
+                nombreLugar = lugar.NombreLugar;
+                descripcion = lugar.Descripcion;
+                direccion = lugar.Ubicacion;
+                prioridad = lugar.Prioridad;
+                imagenActual = lugar.Imagen ?? "";
+
+                // Cargar categoría, país, estado y ciudad
+                idCategoriaSeleccionada = lugar.Id_categoria;
+                idPaisSeleccionado = lugar.Id_pais;
+                idEstadoSeleccionado = lugar.Id_estado;
+                idCiudadSeleccionada = lugar.Id_ciudad;
+
+                // Cargar actividades y transportes seleccionados
+                actividadesSeleccionadas = lugar.Actividades?.Select(a => a.Id_actividad).ToList() ?? new List<int>();
+                transportesSeleccionados = lugar.Transportes?.Select(t => t.Id_transporte).ToList() ?? new List<int>();
+
+                // Cargar ubicación
+                await CargarUbicacionLugar();
+            }
+            else
+            {
+                MostrarAlerta("No se pudo cargar la información del lugar", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"Error al cargar el lugar: {ex.Message}", false);
+        }
+        finally
+        {
+            cargando = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task CargarUbicacionLugar()
+    {
+        try
+        {
+            // Cargar estados del país seleccionado
+            if (idPaisSeleccionado > 0)
+            {
+                estados = await ApiService.ObtenerEstadosPorPais(urlFuncional, idPaisSeleccionado);
+
+                // Cargar ciudades del estado seleccionado
+                if (idEstadoSeleccionado > 0)
+                {
+                    ciudades = await ApiService.ObtenerCiudadesPorEstado(urlFuncional, idEstadoSeleccionado);
+                }
+            }
+
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error al cargar ubicación: {ex.Message}");
+        }
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file == null) return;
+
+        try
+        {
+            archivoSeleccionado = file;
+            subiendoImagen = true;
+            StateHasChanged();
+
+            // Validaciones
+            var extensionesPermitidas = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(archivoSeleccionado.Name)?.ToLower() ?? "";
+
+            if (!extensionesPermitidas.Contains(extension))
+            {
+                MostrarAlerta("❌ Solo se permiten imágenes JPG, PNG, GIF o WebP", false);
+                archivoSeleccionado = null;
+                subiendoImagen = false;
+                return;
+            }
+
+            if (archivoSeleccionado.Size > 5 * 1024 * 1024)
+            {
+                MostrarAlerta("❌ La imagen no puede ser mayor a 5MB", false);
+                archivoSeleccionado = null;
+                subiendoImagen = false;
+                return;
+            }
+
+            // Subir nueva imagen
+            using var stream = archivoSeleccionado.OpenReadStream(maxAllowedSize: 5 * 1024 * 1024);
+            var resultado = await ImageUploadService.SubirImagen(stream, archivoSeleccionado.Name);
+
+            if (resultado?.Exito == true)
+            {
+                nuevaImagenUrl = resultado.Url;
+                MostrarAlerta($"✅ Nueva imagen '{ObtenerNombreArchivo(nuevaImagenUrl)}' subida correctamente", true);
+            }
+            else
+            {
+                var mensajeError = resultado?.Mensaje ?? "Error desconocido";
+                MostrarAlerta($"❌ Error al subir imagen: {mensajeError}", false);
+                archivoSeleccionado = null;
+                nuevaImagenUrl = "";
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"❌ Error al procesar imagen: {ex.Message}", false);
+            archivoSeleccionado = null;
+            nuevaImagenUrl = "";
+        }
+        finally
+        {
+            subiendoImagen = false;
+            StateHasChanged();
+        }
+    }
+
+    private void MostrarSubidaImagen()
+    {
+        mostrarSubidaImagen = true;
+        StateHasChanged();
+    }
+
+    private void EliminarNuevaImagen()
+    {
+        nuevaImagenUrl = "";
+        archivoSeleccionado = null;
+        StateHasChanged();
+        MostrarAlerta("🗑️ Nueva imagen eliminada", true);
+    }
+
+    private string ObtenerNombreArchivo(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return "";
+
+        // Si es una URL completa, extraer solo el nombre del archivo
+        if (url.Contains("/"))
+        {
+            return Path.GetFileName(url);
+        }
+
+        return url;
+    }
+
+    private async Task OnPaisCambiado()
+    {
+        if (idPaisSeleccionado > 0)
+        {
+            idEstadoSeleccionado = 0;
+            idCiudadSeleccionada = 0;
+            ciudades.Clear();
+
+            estados = await ApiService.ObtenerEstadosPorPais(urlFuncional, idPaisSeleccionado);
+            StateHasChanged();
+        }
+    }
+
+    private async Task OnEstadoCambiado()
+    {
+        if (idEstadoSeleccionado > 0)
+        {
+            idCiudadSeleccionada = 0;
+
+            ciudades = await ApiService.ObtenerCiudadesPorEstado(urlFuncional, idEstadoSeleccionado);
+            StateHasChanged();
+        }
+    }
+
+    private void ToggleTransporte()
+    {
+        mostrarTransporte = !mostrarTransporte;
+    }
+
+    private void ToggleActividades()
+    {
+        mostrarActividades = !mostrarActividades;
+    }
+
+    private void ToggleTransporteSeleccionado(int idTransporte, bool isChecked)
+    {
+        if (isChecked)
+            transportesSeleccionados.Add(idTransporte);
+        else
+            transportesSeleccionados.Remove(idTransporte);
+    }
+
+    private void ToggleActividadSeleccionada(int idActividad, bool isChecked)
+    {
+        if (isChecked)
+            actividadesSeleccionadas.Add(idActividad);
+        else
+            actividadesSeleccionadas.Remove(idActividad);
+    }
+
+    private async Task ActualizarLugar()
+    {
+        // Validaciones
+        if (string.IsNullOrWhiteSpace(nombreLugar))
+        {
+            MostrarAlerta("❌ El nombre del lugar es requerido", false);
+            return;
+        }
+
+        if (idCategoriaSeleccionada == 0)
+        {
+            MostrarAlerta("❌ Seleccione una categoría", false);
+            return;
+        }
+
+        if (idPaisSeleccionado == 0 || idEstadoSeleccionado == 0 || idCiudadSeleccionada == 0)
+        {
+            MostrarAlerta("❌ Complete la ubicación (País, Estado y Ciudad)", false);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(direccion))
+        {
+            MostrarAlerta("❌ La ubicación específica es requerida", false);
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            // Determinar qué imagen usar
+            string imagenParaGuardar = !string.IsNullOrEmpty(nuevaImagenUrl) ? nuevaImagenUrl : imagenActual;
+
+            var lugarUpdate = new LugarUpdateDto
+            {
+                lugar = nombreLugar,
+                descripcion = descripcion,
+                ubicacion = direccion,
+                imagen = imagenParaGuardar,
+                id_pais = idPaisSeleccionado,
+                id_estado = idEstadoSeleccionado,
+                id_ciudad = idCiudadSeleccionada,
+                id_categoria = idCategoriaSeleccionada,
+                prioridad = prioridad,
+                Actividades = actividadesSeleccionadas.Any() ? actividadesSeleccionadas : null,
+                Transportes = transportesSeleccionados.Any() ? transportesSeleccionados : null
+            };
+
+            var success = await ApiService.ActualizarLugar(lugar.Id_lugar, lugarUpdate, urlFuncional);
+
+            if (success)
+            {
+                // Si se subió una nueva imagen, eliminar la anterior
+                if (!string.IsNullOrEmpty(nuevaImagenUrl) && !string.IsNullOrEmpty(imagenActual) && nuevaImagenUrl != imagenActual)
+                {
+                    await EliminarImagenAnterior(imagenActual);
+                }
+
+                MostrarAlerta("✅ ¡Lugar actualizado exitosamente!", true);
+            }
+            else
+            {
+                MostrarAlerta("❌ Error al actualizar el lugar", false);
+            }
+        }
+        catch (Exception ex)
+        {
+            MostrarAlerta($"❌ Error: {ex.Message}", false);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task EliminarImagenAnterior(string nombreImagen)
+    {
+        try
+        {
+            // Llamar al servicio para eliminar la imagen anterior
+            var eliminado = await ImageUploadService.EliminarImagen(nombreImagen);
+            if (eliminado)
+            {
+                Console.WriteLine($"🗑️ Imagen anterior eliminada: {nombreImagen}");
+            }
+            else
+            {
+                Console.WriteLine($"⚠️ No se pudo eliminar la imagen anterior: {nombreImagen}");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ Error al eliminar imagen anterior: {ex.Message}");
+        }
+    }
+
+    private async void MostrarAlerta(string mensaje, bool esExito)
+    {
+        mensajeAlerta = mensaje;
+        alertaEsExito = esExito;
+        mostrarAlerta = true;
+        StateHasChanged();
+
+        await Task.Delay(esExito ? 5000 : 8000);
+        if (mostrarAlerta)
+        {
+            CerrarAlerta();
+        }
+    }
+
+    private void CerrarAlerta()
+    {
+        mostrarAlerta = false;
+        StateHasChanged();
+    }
+
+    private void Cancelar()
+    {
+        Navigation.NavigateTo("/");
+    }
+}
